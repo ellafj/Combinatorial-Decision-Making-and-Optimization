@@ -11,32 +11,58 @@ def initialize_variables(x):
     return A, vec
 
 
-# Calculates the residual for f1
-def res1(zi, A, c):
+# Calculates the residual for f
+def res(zi, A, c):
     return np.matmul(np.matmul((zi - c).T, A), zi - c) - 1
 
 
-# Calculates the residual for f2
-def res2(zi, A, b):
-    return np.matmul(np.matmul(zi.T, A), zi) - np.matmul(zi.T, b) - 1
-
-
 # Calculating value for f_i function
-def f(x, z, i, inner_points):
+def f(x, z, inner_points):
     A, c = initialize_variables(x)
     value = 0
     for ind in range(len(z)):
         if ind in inner_points:
-            if i == 1:
-                value += max(res1(z[ind], A, c), 0) ** 2
-            else:
-                value += max(res2(z[ind], A, c), 0) ** 2
+            value += max(res(z[ind], A, c), 0) ** 2
         else:
-            if i == 1:
-                value += min(res1(z[ind], A, c), 0) ** 2
-            else:
-                value += min(res2(z[ind], A, c), 0) ** 2
+            value += min(res(z[ind], A, c), 0) ** 2
     return value
+
+
+# Calculating the gradient function of f_i
+def df(x, z, inner_points):
+    # Initializing variables for dr/dA and dr/dc
+    dr_dA = np.zeros((2,2))
+    dr_dc = np.zeros(2)
+
+    A, c = initialize_variables(x)
+
+    for ind in range(len(z)):
+        # Calculates dr/dA for this data point
+        grad_A = np.matmul((z[ind]-c).T, z[ind]-c)
+        # Calculates dr/dc for this data point
+        grad_c = -2 * np.matmul(A, z[ind]-c)
+        # Calculates the residual for this data point
+        ri = res(z[ind], A, c)
+
+        # Checks if data point is an inner point
+        if ind in inner_points and ri > 0:
+            dr_dA += 2 * ri * grad_A
+            dr_dc += 2 * ri * grad_c
+
+        # Checks if data point is an outer point
+        if ind not in inner_points and ri < 0:
+            dr_dA += 2 * ri * grad_A
+            dr_dc += 2 * ri * grad_c
+    
+    return np.array([dr_dA[0,0], dr_dA[0,1], dr_dA[1,1], dr_dc[0], dr_dc[1]])
+
+
+# A function that makes f and df easier to call
+def problem_definition(x, z, inner_points):
+    f_func = lambda x: f(x, z, inner_points)
+    df_func = lambda x: df(x, z, inner_points)
+    return f_func, df_func
+
 
 
 # Generates the randomly scattered points
@@ -58,6 +84,9 @@ def generate_points(x, scale1 = 1, scale2 = 2 * 10 ** (-1),  size = 500):
     return all_points, inner_points
 
 
+
+
+
 # The contraint functions
 def constraints(x):
     def c1(x, y1, y2):
@@ -72,5 +101,6 @@ def constraints(x):
         return (np.abs(x[0] * x[2])) ** (1/2) - (y1 ** 2 + x[1] ** 2) ** (1/2)
 
     return [c1, c2, c3, c4, c5]
+
 
 
