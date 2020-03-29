@@ -66,13 +66,13 @@ def problem_definition(x, z, inner_points):
 
 
 # Generates the randomly scattered points
-def generate_points(x, scale1 = 1, scale2 = 2 * 10 ** (-1),  size = 500):
+def generate_points(x, scale = 1e-1, size = 500):
     A, c = initialize_variables(x)
-    all_points = np.random.multivariate_normal(c, scale1 * np.linalg.inv(A), size = size)
+    all_points = np.random.uniform(-2, 2, ((size, 2))) #np.random.multivariate_normal(c, scale1 * np.linalg.inv(A), size = size)
     inner_points = []
     n = len(all_points)
-    x = np.random.normal(0, scale2, n)
-    y = np.random.normal(0, scale2, n)
+    x = np.random.normal(0, scale, n)
+    y = np.random.normal(0, scale, n)
 
     for i in range(n):
         if res(all_points[i], A, c) <= 0:
@@ -83,6 +83,27 @@ def generate_points(x, scale1 = 1, scale2 = 2 * 10 ** (-1),  size = 500):
 
     return all_points, inner_points
 
+# Plots the points
+def plot_points(z, inner_points):
+    for ind in range(len(z)):
+        if ind in inner_points:
+            color = "C0"
+        else:
+            color = "C3"
+        plt.scatter(z[ind,0], z[ind,1], color=color)
+
+
+# Plot the ellipses
+def plot_ellipses(x_k):
+    A, c = initialize_variables(x_k)
+    x = np.linspace(-2, 2, 100)
+    y = np.linspace(-2, 2, 100)
+    X, Y = np.meshgrid(x, y)
+    r = np.zeros((100, 100))
+    for i in range(len(x)):
+        for j in range(len(y)):
+            r[i, j] = res(np.array([X[i, j], Y[i, j]]), A, c)
+    plt.contour(X, Y, r, levels=[1], alpha=1.0)
 
 # The contraint functions
 def c(x, y1, y2):
@@ -151,7 +172,9 @@ def backtracking(f_k, df_k, x_k, z, inner_points, y1, y2, beta, p_k, alpha=1, rh
     return alpha
 
 
+# Function for iterating with BFGS method
 def BFGS(x0, z, inner_points, y1, y2, beta=1.0, TOL=1e-7):
+    ellipses = x0           # Value for storing initial and final ellipse
     x_k = x0
     I = np.eye(len(x0))
     H_k = I
@@ -159,8 +182,11 @@ def BFGS(x0, z, inner_points, y1, y2, beta=1.0, TOL=1e-7):
     df_k = df_constrained(x_k, z, inner_points, y1, y2, beta)
     k = 0
     while la.norm(f_k) > TOL:
+        print("Iteration: ", k)
+        print("la.norm(f_k): ", la.norm(f_k))
         p_k = - H_k @ df_k
         alpha_k = backtracking(f_k, df_k, x_k, z, inner_points, y1, y2, beta, p_k)
+        print('alpha: ', alpha_k)
         x_new = x_k + alpha_k * p_k
         s_k = x_new - x_k
         df_new = df_constrained(x_new, z, inner_points, y1, y2, beta)
@@ -178,9 +204,18 @@ def BFGS(x0, z, inner_points, y1, y2, beta=1.0, TOL=1e-7):
         df_k = df_constrained(x_k, z, inner_points, y1, y2, beta)
         k += 1
 
-        # If alpha is this low there is no need to go through another loop
-        if alpha_k < 1e-7:
+        if alpha_k < TOL:
             break
 
+    ellipses = np.vstack([ellipses, x_k])
+    return x_k
 
 
+x0 = [3,0,3,1,1]
+z, inner = generate_points(x0)
+x = [4, 1, 3, 0, 0]
+plot_points(z, inner)
+plot_ellipses(x)
+new_x = BFGS(x, z, inner, 1, 10)
+plot_ellipses(new_x)
+plt.show()
