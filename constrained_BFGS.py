@@ -53,7 +53,7 @@ def df(x, z, inner_points):
         if ind not in inner_points and ri < 0:
             dr_dA += 2 * ri * grad_A
             dr_dc += 2 * ri * grad_c
-    
+
     return np.array([dr_dA[0,0], dr_dA[0,1], dr_dA[1,1], dr_dc[0], dr_dc[1]])
 
 
@@ -62,7 +62,6 @@ def problem_definition(x, z, inner_points):
     f_func = lambda x: f(x, z, inner_points)
     df_func = lambda x: df(x, z, inner_points)
     return f_func, df_func
-
 
 
 # Generates the randomly scattered points
@@ -75,7 +74,7 @@ def generate_points(x, scale1 = 1, scale2 = 2 * 10 ** (-1),  size = 500):
     y = np.random.normal(0, scale2, n)
 
     for i in range(n):
-        if res1(all_points[i], A, c) <= 0:
+        if res(all_points[i], A, c) <= 0:
             inner_points.append(i)
 
     all_points[:, 0] = all_points[:, 0] + x
@@ -84,23 +83,53 @@ def generate_points(x, scale1 = 1, scale2 = 2 * 10 ** (-1),  size = 500):
     return all_points, inner_points
 
 
-
-
-
 # The contraint functions
-def constraints(x):
-    def c1(x, y1, y2):
-        return x[0] - y1
-    def c2(x, y1, y2):
-        return y2 - x[0]
-    def c3(x, y1, y2):
-        return x[2] - y1
-    def c4(x, y1, y2):
-        return y2 - x[2]
-    def c5(x, y1, y2):
-        return (np.abs(x[0] * x[2])) ** (1/2) - (y1 ** 2 + x[1] ** 2) ** (1/2)
-
-    return [c1, c2, c3, c4, c5]
+def c(x, y1, y2):
+    c = np.zeros(5)
+    c[0] = x[0] - y1
+    c[1] = y2 - x[0]
+    c[2] = x[2] - y1
+    c[3] = y2 - x[2]
+    c[4] = (x[0] * x[2]) ** (1/2) - (y1 ** 2 + x[1] ** 2) ** (1/2)
+    return c
 
 
+# The gradient of the constraint functions
+def dc(x, y1, y2):
+    dc = np.zeros((5,5))
+    dc[0] = [1, 0, 0, 0, 0]
+    dc[1] = [-1, 0, 0, 0, 0]
+    dc[2] = [0, 0, 1, 0, 0]
+    dc[3] = [0, 0, -1, 0, 0]
+    dc[4] = [0.5 * (x[2]/x[0])**(1/2), -x[1]/(y1**2 + x[1]**2)**(1/2), 0.5 * (x[0]/x[2])**(1/2), 0, 0]
+    return dc
 
+
+# The Jacobian of the constraint functions
+def c_jacobian(x, y1, y2):
+    J_c = np.zeros((5,5))
+    grad_c = dc(x, y1, y2)
+    J_c[0] = grad_c[0]
+    J_c[1] = grad_c[1]
+    J_c[2] = grad_c[2]
+    J_c[3] = grad_c[3]
+    J_c[4] = grad_c[4]
+    return J_c
+
+
+# The new constrained function by the primal barrier method
+def f_constrained(x, z, inner_points, y1, y2, beta):
+    return f(x, z, inner_points) - beta * np.sum(np.log(c(x, y1, y2)))
+
+
+# The gradient function of the new constrained function by the primal barrier method
+# Will be of the form df_constrained = df - beta * sum(dc / c)
+def df_constrained(x, z, inner_points, y1, y2, beta):
+    grad_f = df(x, z, inner_points)
+    c_array = c(x, y1, y2)
+    dc_array = dc(x, y1, y2)
+
+    for ind in range(len(grad_f)):
+        grad_f -= beta * dc_array[ind]/c_array[ind]
+
+    return grad_f
