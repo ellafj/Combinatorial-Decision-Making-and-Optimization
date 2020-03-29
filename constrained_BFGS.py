@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import numpy.linalg as la
 
 def initialize_variables(x):
     # x is an array with five entries, where the first three are A11, A12=A21 and A22.
@@ -133,3 +134,53 @@ def df_constrained(x, z, inner_points, y1, y2, beta):
         grad_f -= beta * dc_array[ind]/c_array[ind]
 
     return grad_f
+
+
+# Function for backtracking line search
+def backtracking(f_k, df_k, x_k, z, inner_points, y1, y2, beta, p_k, alpha=1, rho=0.5, const=0.2):
+    while True:
+        # Checking if we are in the feasible set
+        if np.any(c(x_k + alpha * p_k, y1, y2) == np.nan) or np.any(c(x_k + alpha * p_k, y1, y2) < 0):
+            alpha = rho * alpha
+        # Checking if Wolfe condition is fulfilled
+        elif f_constrained(x_k + alpha * p_k, z, inner_points, y1, y2, beta) <= f_k + const * alpha * df_k.dot(p_k):
+            break
+        # Else we update our alpha value
+        else:
+            alpha = rho * alpha
+    return alpha
+
+
+def BFGS(x0, z, inner_points, y1, y2, beta=1.0, TOL=1e-7):
+    x_k = x0
+    I = np.eye(len(x0))
+    H_k = I
+    f_k = f_constrained(x_k, z, inner_points, y1, y2, beta)
+    df_k = df_constrained(x_k, z, inner_points, y1, y2, beta)
+    k = 0
+    while la.norm(f_k) > TOL:
+        p_k = - H_k @ df_k
+        alpha_k = backtracking(f_k, df_k, x_k, z, inner_points, y1, y2, beta, p_k)
+        x_new = x_k + alpha_k * p_k
+        s_k = x_new - x_k
+        df_new = df_constrained(x_new, z, inner_points, y1, y2, beta)
+        y_k = df_new - df_k
+
+        # A failsafe to ensure that Hessian update will be ok
+        if y_k.T @ s_k > 0:
+            rho_k = 1 / (y_k.T @ s_k)
+            H_new = (I - rho_k * s_k @ y_k.T) @ H_k @ (I - rho_k * y_k @ s_k.T) + rho_k * s_k @ s_k.T
+            H_k = H_new
+
+        # Updating variables
+        x_k = x_new
+        f_k = f_constrained(x_k, z, inner_points, y1, y2, beta)
+        df_k = df_constrained(x_k, z, inner_points, y1, y2, beta)
+        k += 1
+
+        # If alpha is this low there is no need to go through another loop
+        if alpha_k < 1e-7:
+            break
+
+
+
