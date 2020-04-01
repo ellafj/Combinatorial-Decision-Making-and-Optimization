@@ -34,7 +34,7 @@ def plot_points(z, inner_points):
             color = "C0"
         else:
             color = "C3"
-        plt.scatter(z[ind,0], z[ind,1], color=color)
+        plt.scatter(z[ind,0], z[ind,1], color=color)#, marker='.')
 
 
 # Plot the ellipses
@@ -119,7 +119,7 @@ def df(x, z, inner_points):
     return np.array([dr_dA[0,0], dr_dA[0,1], dr_dA[1,1], dr_dc[0], dr_dc[1]])
 
 
-# The constraint functions
+# The constraint functions that ensure that A is pos.def
 def c(x, y1, y2):
     c = np.zeros(5)
     c[0] = x[0] - y1
@@ -196,7 +196,7 @@ def backtracking(f_k, df_k, x_k, z, inner_points, y1, y2, beta, p_k, alpha=1, rh
 
 
 # Function for iterating with BFGS method
-def BFGS(x0, z, inner_points, y1, y2, beta=1, TOL=1e-7):
+def BFGS(x0, z, inner_points, y1, y2, beta=1, TOL=1e-5):
     # Initializing variables
     x_k = x0
     I = np.eye(len(x0))
@@ -205,7 +205,7 @@ def BFGS(x0, z, inner_points, y1, y2, beta=1, TOL=1e-7):
 
     while True:
         # Checking if error rate is acceptable
-        while la.norm(df_constrained(x_k, z, inner_points, y1, y2, beta)) > TOL:
+        while la.norm(df_constrained(x_k, z, inner_points, y1, y2, beta), 2) > TOL:
             print("Iteration: ", k)
 
             # Updating variables
@@ -235,8 +235,6 @@ def BFGS(x0, z, inner_points, y1, y2, beta=1, TOL=1e-7):
             return x_k
         else:
             # We make beta smaller and calculate again
-            print('\n')
-            print('Optimizing beta')
             beta = beta/2
 
 
@@ -247,24 +245,27 @@ def BFGS(x0, z, inner_points, y1, y2, beta=1, TOL=1e-7):
 if __name__ == "__main__":
     # Different tests
     true_solutions = {
-        'centered circle': [1/(2**2), 0, 1/(2**2), 0, 0],
-        'centered ellipse': [1/(1.5**2), 0, 1/(2**2), 0, 0],
-        'off-centered ellipse': [1/(1.4**2), 0.2, 1/(2.4**2), 1, 2],
+        'centered circle': [0.4, 0, 0.4, 0, 0],
+        'centered ellipse': [0.6, 0, 0.2, 0, 0],
+        'off-center ellipse': [0.3, 0, 1.2, -1, -1],
     }
 
     # Initializing variables
-    true_solution = true_solutions['centered circle']
-    z, inner = generate_points(true_solution, 100, perturb=True)
+    perturb = True      # Randomly scattering the data points
+    true_solution = true_solutions['off-center ellipse']
+    z, inner = generate_points(true_solution, 100, perturb=perturb)
     y1 = 0.1
     y2 = 100
     initial_guess = [3, 2, 2, 2, 2]
 
     # Calculating the optimized solution
     optimized_solution = BFGS(initial_guess, z, inner, y1, y2)
+    print(optimized_solution)
 
     # Plotting
     plot_points(z, inner)
     plot_ellipses(true_solution, 'T', 'hotpink')
     plot_ellipses(initial_guess, 'I', 'orange')
     plot_ellipses(optimized_solution, 'Op', 'cadetblue')
+    plt.title('BFGS-method for classifying points')
     plt.show()
