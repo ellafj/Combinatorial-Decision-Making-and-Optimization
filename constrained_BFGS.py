@@ -1,6 +1,6 @@
-import matplotlib.pyplot as plt
 import numpy as np
 import numpy.linalg as la
+import matplotlib.pyplot as plt
 
 def initialize_variables(x):
     # x is an array with five entries, where the first three are A11, A12=A21 and A22.
@@ -14,7 +14,10 @@ def initialize_variables(x):
 
 # Calculates the residual for f
 def res(zi, A, c):
-    return np.matmul(np.matmul((zi - c).T, A), zi - c) - 1
+    #print('zi', zi)
+    #print('c', c)
+    #print('A', A)
+    return (zi - c).T @ A @ (zi - c) - 1
 
 
 # Calculating value for f_i function
@@ -22,12 +25,12 @@ def f(x, z, inner_points):
     A, c = initialize_variables(x)
     value = 0
     for ind in range(len(z)):
-        if ind in inner_points:
-            value += max(res(z[ind], A, c), 0) ** 2
-        else:
-            value += min(res(z[ind], A, c), 0) ** 2
+        ri = res(z[ind], A, c)
+        if (inner_points[ind] == 1) and (ri > 0):
+            value += ri ** 2
+        if (inner_points[ind] == 0) and (ri < 0):
+            value += ri ** 2
     return value
-
 
 # Calculating the gradient function of f_i
 def df(x, z, inner_points):
@@ -39,31 +42,23 @@ def df(x, z, inner_points):
 
     for ind in range(len(z)):
         # Calculates dr/dA for this data point
-        grad_A = np.matmul((z[ind]-c).T, z[ind]-c)
+        grad_A = np.outer((z[ind]-c), (z[ind]-c)) #np.matmul((z[ind]-c).T, z[ind]-c)
         # Calculates dr/dc for this data point
-        grad_c = -2 * np.matmul(A, z[ind]-c)
+        grad_c = -2 * (A @ (z[ind]-c)) #-2 * np.matmul(A, z[ind]-c)
         # Calculates the residual for this data point
         ri = res(z[ind], A, c)
 
         # Checks if data point is an inner point
-        if ind in inner_points and ri > 0:
+        if inner_points[ind] == 1 and ri > 0:
             dr_dA += 2 * ri * grad_A
             dr_dc += 2 * ri * grad_c
 
         # Checks if data point is an outer point
-        if ind not in inner_points and ri < 0:
+        if inner_points[ind] == 0 and ri < 0:
             dr_dA += 2 * ri * grad_A
             dr_dc += 2 * ri * grad_c
 
     return np.array([dr_dA[0,0], dr_dA[0,1], dr_dA[1,1], dr_dc[0], dr_dc[1]])
-
-
-# A function that makes f and df easier to call
-def problem_definition(x, z, inner_points):
-    f_func = lambda x: f(x, z, inner_points)
-    df_func = lambda x: df(x, z, inner_points)
-    return f_func, df_func
-
 
 # Generates the randomly scattered points
 def generate_points(x, scale = 1e-1, size = 500):
@@ -83,10 +78,26 @@ def generate_points(x, scale = 1e-1, size = 500):
 
     return all_points, inner_points
 
+def new_generate_points(x, size, perturb = False):
+    A, c = initialize_variables(x)
+    area = 5
+    all_points = area * (2 * np.random.rand(size, 2) - np.ones((2,)))
+    inner_points = np.zeros(len(all_points))
+    for ind in range(len(all_points)):
+        if res(all_points[ind], A, c) <= 0:
+            inner_points[ind] = 1
+
+    if perturb:
+        for ind in range(len(all_points)):
+            all_points[ind] += np.random.uniform(-1, 1, size = (1, 2))[0]
+
+    return all_points, inner_points
+
+
 # Plots the points
 def plot_points(z, inner_points):
     for ind in range(len(z)):
-        if ind in inner_points:
+        if inner_points[ind] == 1:
             color = "C0"
         else:
             color = "C3"
@@ -96,23 +107,24 @@ def plot_points(z, inner_points):
 # Plot the ellipses
 def plot_ellipses(x_k):
     A, c = initialize_variables(x_k)
-    x = np.linspace(-2, 2, 100)
-    y = np.linspace(-2, 2, 100)
+    x = np.linspace(-5, 5, 100)
+    y = np.linspace(-5, 5, 100)
     X, Y = np.meshgrid(x, y)
     r = np.zeros((100, 100))
     for i in range(len(x)):
         for j in range(len(y)):
             r[i, j] = res(np.array([X[i, j], Y[i, j]]), A, c)
-    plt.contour(X, Y, r, levels=[1], alpha=1.0)
+    plt.contour(X, Y, r, levels = [0], alpha=1.0)
 
-# The contraint functions
+
+# The constraint functions
 def c(x, y1, y2):
     c = np.zeros(5)
     c[0] = x[0] - y1
     c[1] = y2 - x[0]
     c[2] = x[2] - y1
     c[3] = y2 - x[2]
-    c[4] = (x[0] * x[2]) ** (1/2) - (y1 ** 2 + x[1] ** 2) ** (1/2)
+    c[4] = np.abs(x[0] * x[2]) ** (1/2) - (y1 ** 2 + x[1] ** 2) ** (1/2)
     return c
 
 
@@ -123,7 +135,14 @@ def dc(x, y1, y2):
     dc[1] = [-1, 0, 0, 0, 0]
     dc[2] = [0, 0, 1, 0, 0]
     dc[3] = [0, 0, -1, 0, 0]
-    dc[4] = [0.5 * (x[2]/x[0])**(1/2), -x[1]/(y1**2 + x[1]**2)**(1/2), 0.5 * (x[0]/x[2])**(1/2), 0, 0]
+    dc[4] = [
+        0.5 * x[2] / np.sqrt(x[0] * x[2]),
+        - x[1] / np.sqrt(y1**2 + x[1]**2),
+        0.5 * x[0] / np.sqrt(x[0] * x[2]),
+        0,
+        0
+    ]
+    #[0.5 * (x[2]/x[0])**(1/2), -x[1]/(y1**2 + x[1]**2)**(1/2), 0.5 * (x[0]/x[2])**(1/2), 0, 0]
     return dc
 
 
@@ -141,6 +160,8 @@ def c_jacobian(x, y1, y2):
 
 # The new constrained function by the primal barrier method
 def f_constrained(x, z, inner_points, y1, y2, beta):
+    if np.any(c(x, y1, y2) < 0):
+       return np.inf
     return f(x, z, inner_points) - beta * np.sum(np.log(c(x, y1, y2)))
 
 
@@ -156,66 +177,210 @@ def df_constrained(x, z, inner_points, y1, y2, beta):
 
     return grad_f
 
-
 # Function for backtracking line search
 def backtracking(f_k, df_k, x_k, z, inner_points, y1, y2, beta, p_k, alpha=1, rho=0.5, const=0.2):
     while True:
         # Checking if we are in the feasible set
         if np.any(c(x_k + alpha * p_k, y1, y2) == np.nan) or np.any(c(x_k + alpha * p_k, y1, y2) < 0):
             alpha = rho * alpha
+
         # Checking if Wolfe condition is fulfilled
-        elif f_constrained(x_k + alpha * p_k, z, inner_points, y1, y2, beta) <= f_k + const * alpha * df_k.dot(p_k):
+        elif f_constrained(x_k + alpha * p_k, z, inner_points, y1, y2, beta) <= f_k + const * alpha * df_k.dot(p_k): #df_k.T @ p_k:
             break
+
         # Else we update our alpha value
         else:
             alpha = rho * alpha
+
     return alpha
 
 
 # Function for iterating with BFGS method
-def BFGS(x0, z, inner_points, y1, y2, beta=1.0, TOL=1e-7):
-    ellipses = x0           # Value for storing initial and final ellipse
+def BFGS(x0, z, inner_points, y1, y2, beta=1, TOL=1e-7):
+    # Initializing variables
     x_k = x0
     I = np.eye(len(x0))
     H_k = I
-    f_k = f_constrained(x_k, z, inner_points, y1, y2, beta)
-    df_k = df_constrained(x_k, z, inner_points, y1, y2, beta)
     k = 0
-    while la.norm(f_k) > TOL:
-        print("Iteration: ", k)
-        print("la.norm(f_k): ", la.norm(f_k))
-        p_k = - H_k @ df_k
-        alpha_k = backtracking(f_k, df_k, x_k, z, inner_points, y1, y2, beta, p_k)
-        print('alpha: ', alpha_k)
-        x_new = x_k + alpha_k * p_k
-        s_k = x_new - x_k
-        df_new = df_constrained(x_new, z, inner_points, y1, y2, beta)
-        y_k = df_new - df_k
 
-        # A failsafe to ensure that Hessian update will be ok
-        if y_k.T @ s_k > 0:
-            rho_k = 1 / (y_k.T @ s_k)
-            H_new = (I - rho_k * s_k @ y_k.T) @ H_k @ (I - rho_k * y_k @ s_k.T) + rho_k * s_k @ s_k.T
-            H_k = H_new
+    while True:
+        while la.norm(df_constrained(x_k, z, inner_points, y1, y2, beta)) > TOL:
+            print("Iteration: ", k)
+            f_k = f_constrained(x_k, z, inner_points, y1, y2, beta)
+            df_k = df_constrained(x_k, z, inner_points, y1, y2, beta)
+            p_k = - H_k @ df_k
+            alpha_k = backtracking(f_k, df_k, x_k, z, inner_points, y1, y2, beta, p_k)
+            x_new = x_k + alpha_k * p_k
+            s_k = x_new - x_k
+            df_new = df_constrained(x_new, z, inner_points, y1, y2, beta)
+            y_k = df_new - df_k
 
-        # Updating variables
-        x_k = x_new
-        f_k = f_constrained(x_k, z, inner_points, y1, y2, beta)
-        df_k = df_constrained(x_k, z, inner_points, y1, y2, beta)
-        k += 1
+            # A failsafe to ensure that Hessian update will be ok
+            if s_k.dot(y_k) > 0:
+                rho_k = 1 / s_k.dot(y_k)
+                H_k = (I - rho_k * np.outer(s_k, y_k)) @ H_k @ (I - rho_k * np.outer(y_k, s_k))+ rho_k * np.outer(s_k, s_k)
 
-        if alpha_k < TOL:
-            break
+            # Updating variables
+            x_k = x_new
+            k += 1
 
-    ellipses = np.vstack([ellipses, x_k])
-    return x_k
+            if alpha_k < TOL:
+                break
+
+        if beta < TOL:
+            print('\n initial ellipse', x0)
+            print('final ellipse', x_k)
+            return x_k
+        else:
+            print('beta', beta/2)
+            beta = beta/2
 
 
-x0 = [3,0,3,1,1]
-z, inner = generate_points(x0)
-x = [4, 1, 3, 0, 0]
+
+x0 = [2, 1, 1, 0, 1] #[1/1.2**2, 0, 1/2**2, 0, 0] #[5, 1, 5, 0, 0] #[3,1,3,0,0]
+z, inner = new_generate_points(x0, 150, perturb=True)
+y1 = 0.1
+y2 = 100
+x = [3, 2, 2, 0, 0]
 plot_points(z, inner)
 plot_ellipses(x)
-new_x = BFGS(x, z, inner, 1, 10)
+new_x = BFGS(x, z, inner, y1, y2)
 plot_ellipses(new_x)
 plt.show()
+
+
+# Not the problem
+def primal_barrier(x0, z, w, gamma_small, gamma_big,
+                  n=5, beta=1.0, tol=1e-7, problem=1, silent=False):
+    '''Incorporating the primal logarithmic barrier in order to solve
+    the constrained case using BFGS. The ojective function is assumed
+    to be of form f(x), and is modified by constrained_functions.P to
+    be of the form P(x, beta) = f(x) - beta * sum(c(x))
+
+    Arguments:
+        x0 {Array} -- Inital guess
+        z {array} -- coordinates of points
+        w {array} -- labels of corresponding points
+        gamma_small {float} -- lower constant in constraints
+        gamma_big {float} -- upper constant in constraints
+
+    Keyword Arguments:
+        n {int} -- number of components of x (default: {5})
+        beta {float} -- initial barrier value (default: {1.0})
+        tol {float} -- stopping criteria for BFGS (default: {1e-5})
+        problem {int} -- which problem to optimize.
+                         Valid choices are 1 and 2. (default: {1})
+        silent {bool} -- if True, the function will not print
+                         a progress report as the algorithm runs
+    '''
+    # Create array to store computed ellipses
+    ellipses = x0
+
+    I = np.eye(n)
+    x_k = x0
+    iteration = 0
+    while True:
+        # begin BFGS loop
+        H_k = I
+        df_k = df_constrained(x_k, z, w, gamma_small, gamma_big, beta)
+        while la.norm(df_k) > tol:
+            df_k = df_constrained(x_k, z, w, gamma_small, gamma_big, beta)
+            f_k = f_constrained(x_k, z, w, gamma_small, gamma_big, beta)
+            p_k = - H_k @ df_k
+            alpha = backtracking(f_k, df_k, x_k, z, w, gamma_small, gamma_big, beta, p_k)
+            prev_xk = x_k
+            x_k = x_k + alpha * p_k
+            s_k = x_k - prev_xk
+            prev_dfk = df_k
+            df_k = df_constrained(x_k, z, w, gamma_small, gamma_big, beta)
+            y_k = df_k - prev_dfk
+            prev_Hk = H_k
+            # Check that Hessian update is okay
+            if s_k.dot(y_k) > 0:
+                rho = 1 / s_k.dot(y_k)
+                H_k = ((I - rho * np.outer(s_k, y_k)) @ H_k @ (I - rho * np.outer(y_k, s_k))
+                      + rho * np.outer(s_k, s_k))
+            if alpha < 1e-7:
+                iteration += 1
+                break
+            iteration += 1
+        # end BFGS loop
+
+        # Check accuracy
+        if beta < tol:
+            z_k = beta / c(x_k, gamma_small, gamma_big)
+            KKT = df_k - (c_jacobian(x_k, gamma_small, gamma_big).T).dot(z_k)
+            print(f'*** Algorithm complete ***')
+            print(f'The 2-norm of the vector computed as the KKT condition is {la.norm(KKT)}.')
+            print('The final results of the algorithm are as follows:')
+            print(f'Objective function with barrier value {f_k}.')
+            print(f'x_k: {x_k}')
+            ellipses = np.vstack([ellipses, x_k])
+            return ellipses
+
+        else:
+            beta = beta / 2
+            print('beta', beta)
+            ellipses = np.vstack([ellipses, x_k])
+            if not silent:
+                print(f'Downscaling at iteration {iteration}.' \
+                       'β = {np.format_float_scientific(beta, precision=3)}.')
+                print(f'Objective function with barrier value {f_k}.')
+                print(f'x_k: {x_k}')
+                print('---------------------------------------------------------')
+def backtrack(f_k, df_k, x, z, w, gamma_small, gamma_big, beta, p, alpha=1, rho=0.5, c1=0.2):
+    while True:
+        # Make sure we stay in the feasible set
+        if np.any(c(x + alpha * p, gamma_small, gamma_big) == np.nan) or np.any(c(x + alpha * p, gamma_small, gamma_big) < 0):
+            alpha = rho * alpha
+        elif f_constrained(x + alpha*p, z, w, gamma_small, gamma_big, beta) <= f_k + c1 * alpha * df_k.dot(p):
+            return alpha
+        else:
+            alpha = rho * alpha
+def df_constrained_new(x, z, w, gamma_small, gamma_big, beta):
+    dP_array = df(x, z, w)
+    c_array = c(x, gamma_small, gamma_big)
+    dc_array = dc(x, gamma_small, gamma_big)
+    for i in range(5):
+        dP_array -= beta /c_array[i] * dc_array[i]
+
+    return dP_array
+def f_constrained_new(x):
+    return 0
+def c_jacobian_new(x, gamma_small, gamma_big):
+    A = np.zeros((5, 5))
+    A[0, 0] = 1
+    A[1, 0] = -1
+    A[2, 2] = 1
+    A[3, 2] = -1
+    A[4] = np.array([
+        0.5 * np.sqrt(x[2] / x[0]),
+        - x[1] / np.sqrt(gamma_small**2 + x[1]**2),
+        0.5 * np.sqrt(x[0] / x[2]),
+        0,
+        0
+    ])
+    return A
+def df_new(x, z, w):
+    A, c = initialize_variables(x)
+    g1 = np.zeros((2,2))
+    g2 = np.zeros(2)
+    for i in range(len(z)):
+        ri = np.transpose(z[i]-c)@A@(z[i]-c) - 1
+        g11 = np.outer((z[i]-c), (z[i]-c))
+        g22 = -2*(A@(z[i]-c))
+
+        if (w[i] == 1) and (ri > 0):
+            g1 += 2*ri*g11
+            g2 += 2*ri*g22
+
+        if (w[i] == 0) and (ri < 0):
+            g1 += 2*ri*g11
+            g2 += 2*ri*g22
+
+    assert g1.shape == (2, 2), "Wrong"
+    assert len(g2) == 2, "Wrong"
+
+    df = np.array([g1[0][0], g1[0][1], g1[1][1], g2[0], g2[1]])
+
+    return df
