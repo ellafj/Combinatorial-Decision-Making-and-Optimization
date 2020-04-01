@@ -22,7 +22,7 @@ def generate_points(x, size, perturb = False):
     # Perturbs the data points
     if perturb:
         for ind in range(len(all_points)):
-            all_points[ind] += np.random.uniform(-1, 1, size = (1, 2))[0]
+            all_points[ind] += np.random.uniform(-0.5, 0.5, size = (1, 2))[0]
 
     return all_points, inner_points
 
@@ -38,7 +38,7 @@ def plot_points(z, inner_points):
 
 
 # Plot the ellipses
-def plot_ellipses(x_k, color='blue'):
+def plot_ellipses(x_k, label, color='blue'):
     A, c = initialize_ellipse(x_k)
     x = np.linspace(-5, 5, 100)
     y = np.linspace(-5, 5, 100)
@@ -47,7 +47,8 @@ def plot_ellipses(x_k, color='blue'):
     for i in range(len(x)):
         for j in range(len(y)):
             r[i, j] = res(np.array([X[i, j], Y[i, j]]), A, c)
-    plt.contour(X, Y, r, levels = [0], alpha=1.0, color=color)
+    plot = plt.contour(X, Y, r, levels = [0], alpha=1.0, colors=color)
+    plt.clabel(plot, fmt=label)
 
 
 #######################################################################
@@ -87,10 +88,11 @@ def f(x, z, inner_points):
             value += ri ** 2
         if inner_points[ind] == 0 and ri < 0:
             value += ri ** 2
+
     return value
 
 
-# Calculating the gradient function of f_i
+# Calculating the gradient function of f
 def df(x, z, inner_points):
     # Initializing variables for dr/dA and dr/dc
     dr_dA = np.zeros((2,2))
@@ -135,14 +137,7 @@ def dc(x, y1, y2):
     dc[1] = [-1, 0, 0, 0, 0]
     dc[2] = [0, 0, 1, 0, 0]
     dc[3] = [0, 0, -1, 0, 0]
-    dc[4] = [
-        0.5 * x[2] / np.sqrt(x[0] * x[2]),
-        - x[1] / np.sqrt(y1**2 + x[1]**2),
-        0.5 * x[0] / np.sqrt(x[0] * x[2]),
-        0,
-        0
-    ]
-    #[0.5 * (x[2]/x[0])**(1/2), -x[1]/(y1**2 + x[1]**2)**(1/2), 0.5 * (x[0]/x[2])**(1/2), 0, 0]
+    dc[4] = [0.5 * (x[2]/x[0])**(1/2), -x[1]/(y1**2 + x[1]**2)**(1/2), 0.5 * (x[0]/x[2])**(1/2), 0, 0]
     return dc
 
 
@@ -160,14 +155,13 @@ def c_jacobian(x, y1, y2):
 
 # The new constrained function by the primal barrier method
 def f_constrained(x, z, inner_points, y1, y2, beta):
-    if np.any(c(x, y1, y2) < 0):
-       return np.inf
     return f(x, z, inner_points) - beta * np.sum(np.log(c(x, y1, y2)))
 
 
 # The gradient function of the new constrained function by the primal barrier method
 # Will be of the form df_constrained = df - beta * sum(dc / c)
 def df_constrained(x, z, inner_points, y1, y2, beta):
+    # Initializing variables
     grad_f = df(x, z, inner_points)
     c_array = c(x, y1, y2)
     dc_array = dc(x, y1, y2)
@@ -190,7 +184,7 @@ def backtracking(f_k, df_k, x_k, z, inner_points, y1, y2, beta, p_k, alpha=1, rh
         if np.any(c(x_k + alpha * p_k, y1, y2) == np.nan) or np.any(c(x_k + alpha * p_k, y1, y2) < 0):
             alpha = rho * alpha
 
-        # Checking if Wolfe condition is fulfilled
+        # Checking if weak Wolfe condition is fulfilled
         elif f_constrained(x_k + alpha * p_k, z, inner_points, y1, y2, beta) <= f_k + const * alpha * df_k.dot(p_k): #df_k.T @ p_k:
             break
 
@@ -210,8 +204,11 @@ def BFGS(x0, z, inner_points, y1, y2, beta=1, TOL=1e-7):
     k = 0
 
     while True:
+        # Checking if error rate is acceptable
         while la.norm(df_constrained(x_k, z, inner_points, y1, y2, beta)) > TOL:
             print("Iteration: ", k)
+
+            # Updating variables
             f_k = f_constrained(x_k, z, inner_points, y1, y2, beta)
             df_k = df_constrained(x_k, z, inner_points, y1, y2, beta)
             p_k = - H_k @ df_k
@@ -226,19 +223,20 @@ def BFGS(x0, z, inner_points, y1, y2, beta=1, TOL=1e-7):
                 rho_k = 1 / s_k.dot(y_k)
                 H_k = (I - rho_k * np.outer(s_k, y_k)) @ H_k @ (I - rho_k * np.outer(y_k, s_k))+ rho_k * np.outer(s_k, s_k)
 
-            # Updating variables
             x_k = x_new
             k += 1
 
             if alpha_k < TOL:
                 break
 
-        if beta < TOL:
-            print('\n initial ellipse', x0)
-            print('final ellipse', x_k)
+        # As beta is approximately the error it has to be small enough
+        if beta <= TOL:
+            # Error rate is acceptable so we end our optimization
             return x_k
         else:
-            print('beta', beta/2)
+            # We make beta smaller and calculate again
+            print('\n')
+            print('Optimizing beta')
             beta = beta/2
 
 
@@ -246,14 +244,27 @@ def BFGS(x0, z, inner_points, y1, y2, beta=1, TOL=1e-7):
 ########################### Test functions  ###########################
 #######################################################################
 
+if __name__ == "__main__":
+    # Different tests
+    true_solutions = {
+        'centered circle': [1/(2**2), 0, 1/(2**2), 0, 0],
+        'centered ellipse': [1/(1.5**2), 0, 1/(2**2), 0, 0],
+        'off-centered ellipse': [1/(1.4**2), 0.2, 1/(2.4**2), 1, 2],
+    }
 
-x0 = [2, 1, 1, 0, 1] #[1/1.2**2, 0, 1/2**2, 0, 0] #[5, 1, 5, 0, 0] #[3,1,3,0,0]
-z, inner = generate_points(x0, 150, perturb=True)
-y1 = 0.1
-y2 = 100
-x = [3, 2, 2, 0, 0]
-plot_points(z, inner)
-plot_ellipses(x)
-new_x = BFGS(x, z, inner, y1, y2)
-plot_ellipses(new_x)
-plt.show()
+    # Initializing variables
+    true_solution = true_solutions['centered circle']
+    z, inner = generate_points(true_solution, 100, perturb=True)
+    y1 = 0.1
+    y2 = 100
+    initial_guess = [3, 2, 2, 2, 2]
+
+    # Calculating the optimized solution
+    optimized_solution = BFGS(initial_guess, z, inner, y1, y2)
+
+    # Plotting
+    plot_points(z, inner)
+    plot_ellipses(true_solution, 'T', 'hotpink')
+    plot_ellipses(initial_guess, 'I', 'orange')
+    plot_ellipses(optimized_solution, 'Op', 'cadetblue')
+    plt.show()
