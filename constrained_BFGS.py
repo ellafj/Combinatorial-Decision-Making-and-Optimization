@@ -155,6 +155,11 @@ def c_jacobian(x, y1, y2):
 
 # The new constrained function by the primal barrier method
 def f_constrained(x, z, inner_points, y1, y2, beta):
+    # Making sure we don't get any invalid values
+    if np.any(c(x, y1, y2) < 0):
+        print("No solution - try again")
+        exit()
+
     return f(x, z, inner_points) - beta * np.sum(np.log(c(x, y1, y2)))
 
 
@@ -196,17 +201,19 @@ def backtracking(f_k, df_k, x_k, z, inner_points, y1, y2, beta, p_k, alpha=1, rh
 
 
 # Function for iterating with BFGS method
-def BFGS(x0, z, inner_points, y1, y2, beta=1, TOL=1e-5):
+def BFGS(x0, z, inner_points, y1, y2, beta=1.0, TOL=1e-7):
     # Initializing variables
     x_k = x0
     I = np.eye(len(x0))
-    H_k = I
     k = 0
 
     while True:
-        # Checking if error rate is acceptable
-        while la.norm(df_constrained(x_k, z, inner_points, y1, y2, beta), 2) > TOL:
+        # Initializing variables
+        H_k = I
+        df_k = df_constrained(x_k, z, inner_points, y1, y2, beta)
 
+        # Checking if error rate is acceptable
+        while la.norm(df_k) > TOL:
             # A failsafe to prevent code from running forever
             if k > 500:
                 print('Taking to long - plotting temporary solution instead')
@@ -218,30 +225,32 @@ def BFGS(x0, z, inner_points, y1, y2, beta=1, TOL=1e-5):
             f_k = f_constrained(x_k, z, inner_points, y1, y2, beta)
             df_k = df_constrained(x_k, z, inner_points, y1, y2, beta)
             p_k = - H_k @ df_k
-            alpha_k = backtracking(f_k, df_k, x_k, z, inner_points, y1, y2, beta, p_k)
-            x_new = x_k + alpha_k * p_k
+            alpha = backtracking(f_k, df_k, x_k, z, inner_points, y1, y2, beta, p_k)
+            x_new = x_k + alpha * p_k
             s_k = x_new - x_k
             df_new = df_constrained(x_new, z, inner_points, y1, y2, beta)
             y_k = df_new - df_k
+            df_k = df_new
 
             # A failsafe to ensure that Hessian update will be ok
             if s_k.dot(y_k) > 0:
-                rho_k = 1 / s_k.dot(y_k)
-                H_k = (I - rho_k * np.outer(s_k, y_k)) @ H_k @ (I - rho_k * np.outer(y_k, s_k))+ rho_k * np.outer(s_k, s_k)
+                rho = 1 / s_k.dot(y_k)
+                H_k = ((I - rho * np.outer(s_k, y_k)) @ H_k @ (I - rho * np.outer(y_k, s_k)) + rho * np.outer(s_k, s_k))
 
             x_k = x_new
             k += 1
 
-            if alpha_k < TOL:
+            if alpha < TOL:
                 break
 
         # As beta is approximately the error it has to be small enough
-        if beta <= TOL:
+        if beta < TOL:
             # Error rate is acceptable so we end our optimization
-            return x_k
+            return x_k, f_constrained(x_k, z, inner_points, y1, y2, beta)
+
         else:
             # We make beta smaller and calculate again
-            beta = beta/2
+            beta = beta / 2
 
 
 #######################################################################
@@ -253,7 +262,7 @@ if __name__ == "__main__":
     true_solutions = {
         'centered circle': [0.4, 0, 0.4, 0, 0],
         'centered ellipse': [0.6, 0, 0.2, 0, 0],
-        'off-center ellipse': [0.2, -0.4, 1.2, -1, -1],
+        'off-center ellipse': [0.2, -0.4, 1.2, -1, -1]
     }
 
     # Initializing variables
@@ -265,12 +274,16 @@ if __name__ == "__main__":
     initial_guess = [3, 2, 2, 2, 2]
 
     # Calculating the optimized solution
-    optimized_solution = BFGS(initial_guess, z, inner, y1, y2)
+    optimized_solution, function_value = BFGS(initial_guess, z, inner, y1, y2)
+
+    print('')
+    print('Algorithm ended with function value', function_value)
 
     # Plotting
     plot_points(z, inner)
-    plot_ellipses(true_solution, 'T', 'hotpink')
-    plot_ellipses(initial_guess, 'I', 'orange')
-    plot_ellipses(optimized_solution, 'Op', 'cadetblue')
+    plot_ellipses(true_solution, 'True', 'hotpink')
+    plot_ellipses(initial_guess, 'Init', 'orange')
+    plot_ellipses(optimized_solution, 'Opt', 'cadetblue')
+    plt.axis('equal')
     plt.title('BFGS-method for classifying points')
     plt.show()
