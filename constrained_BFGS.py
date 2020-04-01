@@ -206,6 +206,12 @@ def BFGS(x0, z, inner_points, y1, y2, beta=1, TOL=1e-5):
     while True:
         # Checking if error rate is acceptable
         while la.norm(df_constrained(x_k, z, inner_points, y1, y2, beta), 2) > TOL:
+
+            # A failsafe to prevent code from running forever
+            if k > 500:
+                print('Taking to long - plotting temporary solution instead')
+                return x_k
+
             print("Iteration: ", k)
 
             # Updating variables
@@ -247,7 +253,7 @@ if __name__ == "__main__":
     true_solutions = {
         'centered circle': [0.4, 0, 0.4, 0, 0],
         'centered ellipse': [0.6, 0, 0.2, 0, 0],
-        'off-center ellipse': [0.3, 0, 1.2, -1, -1],
+        'off-center ellipse': [0.2, -0.4, 1.2, -1, -1],
     }
 
     # Initializing variables
@@ -260,7 +266,6 @@ if __name__ == "__main__":
 
     # Calculating the optimized solution
     optimized_solution = BFGS(initial_guess, z, inner, y1, y2)
-    print(optimized_solution)
 
     # Plotting
     plot_points(z, inner)
