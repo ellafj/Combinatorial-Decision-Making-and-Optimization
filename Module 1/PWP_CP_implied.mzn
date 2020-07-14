@@ -1,31 +1,32 @@
-% Constraint program for present wrapping problem (PWP)
+% Constraint program for present wrapping problem (PWP) with implied constraints
 include "globals.mzn";
 
 % Declaring integers
 int: w;            % width of paper
 int: h;            % Height of paper
 int: nPres;        % number of presents to be wrapped
-int: area = w*h;   % area of paper
+%int: area = w*h;   % area of paper
 
 % Defining sets
 set of int: WIDTH = 1..w;
 set of int: HEIGHT = 1..h;
 set of int: PRESENTS = 1..nPres;
-%set of int: VALS = 1..nPres-1;
+set of int: VALS = 1..nPres-1;
 set of int: DIMS = 1..nPres;
-set of int: EXTRA = 0..area;
+%set of int: EXTRA = 0..area;
 
 % Declaring arrays/grids
 array[PRESENTS,1..2] of HEIGHT: dims;     % the dimensions of the presents
 array[PRESENTS,1..2] of var 1..h: place;  % the optimal placement of presents
 
 % Declaring constraints
-constraint diffn(place[PRESENTS,1], place[PRESENTS,2], dims[PRESENTS,1], dims[PRESENTS,2]);
+constraint forall(i in VALS)(place[i,1] + dims[i,1] <= place[i+1,1] /\ place[i,1] <= 0);
+constraint forall(i in VALS)(place[i,2] + dims[i,2] <= place[i+1,2] /\ place[i,2] <= 0);
+constraint sum(i in VALS)(place[i,1]) < w;
+constraint sum(i in VALS)(place[i,2]) < h;
 
-%constraint forall(i in VALS)(place[i,1] + dims[i,1] < place[i+1,1] /\ place[i,1] <= 0);
-%constraint forall(i in VALS)(place[i,2] + dims[i,2] < place[i+1,2] /\ place[i,2] <= 0);
-%constraint sum(i in VALS)(place[i,1]) < w;
-%constraint sum(i in VALS)(place[i,2]) < h;
+% Places presents on paper
+
 
 ann: search_ann;
 search_ann = int_search(place, input_order, indomain_min, complete); 
