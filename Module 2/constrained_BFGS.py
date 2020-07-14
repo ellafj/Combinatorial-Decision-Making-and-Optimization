@@ -217,7 +217,7 @@ def BFGS(x0, z, inner_points, y1, y2, beta=1.0, TOL=1e-7):
             # A failsafe to prevent code from running forever
             if k > 500:
                 print('Taking to long - plotting temporary solution instead')
-                return x_k
+                return x_k #, Missing f_constrained(...)
 
             print("Iteration: ", k)
 
