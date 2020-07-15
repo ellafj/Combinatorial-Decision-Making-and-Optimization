@@ -11,7 +11,7 @@ int: nPres;        % number of presents to be wrapped
 set of int: WIDTH = 1..w;
 set of int: HEIGHT = 1..h;
 set of int: PRESENTS = 1..nPres;
-set of int: VALS = 1..nPres-1;
+set of int: VALS = 2..nPres;
 set of int: DIMS = 1..nPres;
 %set of int: EXTRA = 0..area;
 
@@ -20,12 +20,18 @@ array[PRESENTS,1..2] of HEIGHT: dims;     % the dimensions of the presents
 array[PRESENTS,1..2] of var 1..h: place;  % the optimal placement of presents
 
 % Declaring constraints
-constraint forall(i in VALS)(place[i,1] + dims[i,1] <= place[i+1,1] /\ place[i,1] <= 0);
-constraint forall(i in VALS)(place[i,2] + dims[i,2] <= place[i+1,2] /\ place[i,2] <= 0);
-constraint sum(i in VALS)(place[i,1]) < w;
-constraint sum(i in VALS)(place[i,2]) < h;
+%constraint forall(i in VALS)(place[i-1,1] + dims[i-1,1] <= place[i,1]);
+%constraint forall(i in VALS)(place[i-1,2] + dims[i-1,2] <= place[i,2]);
 
-% Places presents on paper
+constraint forall(i, j in PRESENTS)(if i < j then place[i,1] + dims[i,1] <= place[j,1] endif);
+constraint forall(i, j in PRESENTS)(if i < j then place[i,2] + dims[i,2] <= place[j,2] endif);
+
+constraint forall(i in PRESENTS)(place[i,1] + dims[i,1] <= w /\ place[i,1] >= 0);
+constraint forall(i in PRESENTS)(place[i,2] + dims[i,2] <= h /\ place[i,2] >= 0);
+constraint sum(i in PRESENTS)(place[i,1]) < w;
+constraint sum(i in PRESENTS)(place[i,2]) < h;
+
+% Place presents on paper?
 
 
 ann: search_ann;
