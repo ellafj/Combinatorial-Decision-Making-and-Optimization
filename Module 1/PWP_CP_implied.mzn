@@ -20,8 +20,8 @@ array[PRESENTS,1..2] of HEIGHT: dims;     % the dimensions of the presents
 array[PRESENTS,1..2] of var 1..h: place;  % the optimal placement of presents
 
 % Declaring constraints
-%constraint forall(i in VALS)(place[i-1,1] + dims[i-1,1] <= place[i,1]);
-%constraint forall(i in VALS)(place[i-1,2] + dims[i-1,2] <= place[i,2]);
+constraint forall(i in VALS)(place[i-1,1] + dims[i-1,1] <= place[i,1]);
+constraint forall(i in VALS)(place[i-1,2] + dims[i-1,2] <= place[i,2]);
 
 constraint forall(i, j in PRESENTS)(if i < j then place[i,1] + dims[i,1] <= place[j,1] endif);
 constraint forall(i, j in PRESENTS)(if i < j then place[i,2] + dims[i,2] <= place[j,2] endif);
