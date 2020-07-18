@@ -34,15 +34,13 @@ def readFile(filename):
 
 print(readFile('./Instances/8x8.txt'))
 
+# Making grid as in N-queens example
 def initGrid(h, w, nPres):
-    x = np.arange(w)
-    y = np.arange(h)
-    pres = np.arange(nPres)
     grid = np.zeros((h,w,nPres))
-    for i in range(len(x)):
-        for j in range(len(y)):
-            for it in range(len(pres)):
-                grid[i,j,it] = str(i)+str(j)+str(it)
+    for i in range(w):
+        for j in range(h):
+            for pres in range(nPres):
+                grid[i,j,pres] = Bool(str(i)+str(j)+str(pres))
 
     print('grid', grid)
 
