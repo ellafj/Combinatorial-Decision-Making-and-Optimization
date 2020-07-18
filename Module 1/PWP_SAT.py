@@ -16,6 +16,7 @@ def readFile(filename):
 
     for line in lines:
         line = line.split()
+
         if iter == 0:
             w = int(line[0])
             h = int(line[1])
@@ -34,32 +35,64 @@ def readFile(filename):
 
 print(readFile('./Instances/8x8.txt'))
 
-# Making grid as in N-queens example
-def initGrid(h, w, nPres):
-    grid = np.zeros((h,w,nPres))
-    for i in range(w):
-        for j in range(h):
-            for pres in range(nPres):
-                grid[i,j,pres] = Bool(str(i)+str(j)+str(pres))
 
+def SAT(h, w, nPres, dims):
+    # Making grid as in N-queens example for each potential placing of presents
+    # Grid[0] = all placements of present 0
+    grid = [[[Bool(f'{i}{j}{k}') for i in range(w)]for j in range(h)]for k in range(nPres)]
     print('grid', grid)
 
+    # Constraints:
+    print(dims)
+    for present in range(len(dims)):
+        dim = dims[present]
+        print('current present:', present, dim)
 
-    #grid[0] = [i for i in range(w)]
-    #print(grid[0])
-    #for i in range(nPres):
+        placements = []             # All the potential placements of the presents on the grid
+        remainingH = h - dim[0]     # Remaining height
+        remainingW = w - dim[1]     # Remaining width
+        startX = 0
+        startY = 0
+
+        while remainingH != -1 or remainingW != -1:
+            print('remaining:', remainingH, remainingW)
+            place = []
+
+            if remainingH != -1 and remainingW != -1:
+                for x in range(startX,dim[0]+startX):
+                    for y in range(startY,dim[1]+startY):
+                        place.append(grid[present][x][y])
+
+                placements.append(place)
+
+                remainingH -= 1
+                remainingW -= 1
+                startX += 1
+                startY += 1
+
+            elif remainingH == -1 and remainingW != -1:
+                for x in range(startX,dim[0]+startX):
+                    for y in range(startY,dim[1]+startY):
+                        place.append(grid[present][x][y])
+
+                placements.append(place)
+
+                remainingW -= 1
+                startY += 1
+
+            else:
+                for x in range(startX,dim[0]+startX):
+                    for y in range(startY,dim[1]+startY):
+                        place.append(grid[present][x][y])
+                print(place)
+                placements.append(place)
+
+                remainingH -= 1
+                startX += 1
+
+            print(placements)
 
 
-    potGrid = [] # Potential grid
-    x = [i for i in range(w)]
-    y = [i for i in range(h)]
-    pres = [i for i in range(nPres)]
-
-    potGrid.append(x)
-    potGrid.append(y)
-    potGrid.append(pres)
-
-
-
-
-initGrid(3,3,2)
+if __name__ == '__main__':
+    w, h, nPres, dims = readFile('./Instances/8x8.txt')
+    SAT(w, h, nPres, dims)
