@@ -65,7 +65,7 @@ def SAT(h, w, nPres, dims):
 
                 # Or-command as we only need *one* placement of present
                 placementConst.append(And(place))
-        print(placementConst)
+        #print(placementConst)
 
         s.add(Or(placementConst))           # Adding constraint to the solver
 
@@ -80,6 +80,20 @@ def SAT(h, w, nPres, dims):
     m = s.model()
     sol = []
     area = []
+
+    for x in range(w):
+        for y in range(h):
+            if m[grid[0][x][y]]:
+                print('0', end=' ')
+            elif m[grid[1][x][y]]:
+                print('1', end=' ')
+            elif m[grid[2][x][y]]:
+                print('2', end=' ')
+            elif m[grid[3][x][y]]:
+                print('3', end=' ')
+            else:
+                print('n', end=' ')
+        print('\n')
 
     for pres in range(nPres):
         for x in range(w):
@@ -100,5 +114,5 @@ def SAT(h, w, nPres, dims):
 
 
 if __name__ == '__main__':
-    w, h, nPres, dims = readFile('./Instances/8x8.txt')
+    w, h, nPres, dims = readFile('./Instances/9x9.txt')
     SAT(w, h, nPres, dims)
