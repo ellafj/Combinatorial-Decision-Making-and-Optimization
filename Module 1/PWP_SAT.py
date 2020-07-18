@@ -16,6 +16,7 @@ def readFile(filename):
 
     for line in lines:
         line = line.split()
+
         if iter == 0:
             w = int(line[0])
             h = int(line[1])
