@@ -38,107 +38,67 @@ print(readFile('./Instances/8x8.txt'))
 
 
 def SAT(h, w, nPres, dims):
+    s = Solver()                    # Initializing solver
+
     # Making grid as in N-queens example for each potential placing of presents
     # Grid[0] = all placements of present 0
     grid = [[[Bool(f'{i}{j}{k}') for i in range(w)]for j in range(h)]for k in range(nPres)]
-    print('grid', grid)
+    intGrid = [[[f'{i}{j}{k}' for i in range(w)]for j in range(h)]for k in range(nPres)]
 
-    # Constraints:
-    print(dims)
-    for present in range(len(dims)):
+    for present in range(nPres):
         dim = dims[present]
         print('\n current present:', present, dim)
 
-        placements = []             # All the potential placements of the presents on the grid
-        test = []
+        # Initializing constraint for where presents can be placed on paper
+        placementConst = []         # Constraint for the potential placements of the presents on the grid
         remainingW = w - dim[0]     # Remaining width
         remainingH = h - dim[1]     # Remaining height
-        startX = 0
-        startY = 0
 
         for x in range(remainingW+1):
             for y in range(remainingH+1):
-                place = []
-                te = []
-                it = 0
+                place = []          # Resetting placements as we begin with new present
                 for i in range(dim[0]):
                     for j in range(dim[1]):
+
+                        # And-command as a present will use all the gridpoints, not just some
                         place.append(grid[present][x+i][y+j])
-                        te.append(x)
-                        it += 1
-                print(it, '\n')
-                print(place)
-                placements.append(place)
-                test.append(te)
 
+                # Or-command as we only need *one* placement of present
+                placementConst.append(And(place))
+        print(placementConst)
 
-        print(placements)
-        print(test)
-        print(len(placements[0]))
-        print(len(placements[1]))
-        print(len(placements[2]))
-        print(len(placements[3]))
+        s.add(Or(placementConst))           # Adding constraint to the solver
 
-        """
-        while remainingH != -1 or remainingW != -1:
-            print('remaining:', remainingH, remainingW)
-            place = []
+        # Initializing constraint that ensures that presents do not overlap
+        for x in range(w):
+            for y in range(h):
+                for nextPres in range(present):
+                    overlapConst = Not(Or(*[And(grid[present][x][y], grid[nextPres][x][y])]))
+                    s.add(overlapConst)
 
-            if remainingH != -1 and remainingW != -1:
-                for x in range(startX,dim[0]+startX):
-                    for y in range(startY,dim[1]+startY):
-                        place.append(grid[present][x][y])
+    print(s.check())
+    m = s.model()
+    sol = []
+    area = []
 
-                placements.append(place)
+    for pres in range(nPres):
+        for x in range(w):
+            for y in range(h):
+                if m[grid[pres][x][y]]:
+                    area.append(intGrid[pres][x][y])
+        sol.append(area)
+        area = []
 
-                remainingH -= 1
-                remainingW -= 1
-                startX += 1
-                startY += 1
+    print(sol)
+    leftCorners = []
 
-            elif remainingH == -1 and remainingW != -1:
-                for x in range(startX,dim[0]+startX):
-                    for y in range(startY,dim[1]+startY):
-                        place.append(grid[present][x][y])
+    for pres in sol:
+        leftCorners.append(min(pres))
 
-                placements.append(place)
+    print(dims)
+    print(leftCorners)
 
-                remainingW -= 1
-                startY += 1
-
-            else:
-                for x in range(startX,dim[0]+startX):
-                    for y in range(startY,dim[1]+startY):
-                        place.append(grid[present][x][y])
-                print(place)
-                placements.append(place)
-
-                remainingH -= 1
-                startX += 1
-
-            print(placements)
-        """
 
 if __name__ == '__main__':
     w, h, nPres, dims = readFile('./Instances/8x8.txt')
     SAT(w, h, nPres, dims)
-
-"""
-[[003, 103, 203, 303, 403, 013, 113, 213, 313, 413, 023, 123, 223, 323, 423, 033, 133, 233, 333, 433, 043, 143, 243, 343, 443], 
-[103, 203, 303, 403, 503, 113, 213, 313, 413, 513, 123, 223, 323, 423, 523, 133, 233, 333, 433, 533, 143, 243, 343, 443, 543], 
-[203, 303, 403, 503, 603, 213, 313, 413, 513, 613, 223, 323, 423, 523, 623, 233, 333, 433, 533, 633, 243, 343, 443, 543, 643], 
-[303, 403, 503, 603, 703, 313, 413, 513, 613, 713, 323, 423, 523, 623, 723, 333, 433, 533, 633, 733, 343, 443, 543, 643, 743], 
-[013, 113, 213, 313, 413, 023, 123, 223, 323, 423, 033, 133, 233, 333, 433, 043, 143, 243, 343, 443, 053, 153, 253, 353, 453], 
-[113, 213, 313, 413, 513, 123, 223, 323, 423, 523, 133, 233, 333, 433, 533, 143, 243, 343, 443, 543, 153, 253, 353, 453, 553], 
-[213, 313, 413, 513, 613, 223, 323, 423, 523, 623, 233, 333, 433, 533, 633, 243, 343, 443, 543, 643, 253, 353, 453, 553, 653], 
-[313, 413, 513, 613, 713, 323, 423, 523, 623, 723, 333, 433, 533, 633, 733, 343, 443, 543, 643, 743, 353, 453, 553, 653, 753], 
-[023, 123, 223, 323, 423, 033, 133, 233, 333, 433, 043, 143, 243, 343, 443, 053, 153, 253, 353, 453, 063, 163, 263, 363, 463], 
-[123, 223, 323, 423, 523, 133, 233, 333, 433, 533, 143, 243, 343, 443, 543, 153, 253, 353, 453, 553, 163, 263, 363, 463, 563], 
-[223, 323, 423, 523, 623, 233, 333, 433, 533, 633, 243, 343, 443, 543, 643, 253, 353, 453, 553, 653, 263, 363, 463, 563, 663], 
-[323, 423, 523, 623, 723, 333, 433, 533, 633, 733, 343, 443, 543, 643, 743, 353, 453, 553, 653, 753, 363, 463, 563, 663, 763], 
-[033, 133, 233, 333, 433, 043, 143, 243, 343, 443, 053, 153, 253, 353, 453, 063, 163, 263, 363, 463, 073, 173, 273, 373, 473], 
-[133, 233, 333, 433, 533, 143, 243, 343, 443, 543, 153, 253, 353, 453, 553, 163, 263, 363, 463, 563, 173, 273, 373, 473, 573], 
-[233, 333, 433, 533, 633, 243, 343, 443, 543, 643, 253, 353, 453, 553, 653, 263, 363, 463, 563, 663, 273, 373, 473, 573, 673], 
-[333, 433, 533, 633, 733, 343, 443, 543, 643, 743, 353, 453, 553, 653, 753, 363, 463, 563, 663, 763, 373, 473, 573, 673, 773]]
-
-"""
