@@ -4,11 +4,6 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 np.set_printoptions(linewidth=50)
 
-#x = Int('x')
-#y = Int('y')
-#print(simplify(x + y + 2*x + 3))
-#print(simplify(x < y + x + 2))
-#print(simplify(And(x + 1 >= 3, x**2 + x**2 + y**2 + 2 >= 5)))
 
 def readFile(filename):
     f = open(filename, 'r')
@@ -36,9 +31,6 @@ def readFile(filename):
     f.close()
     return w, h, nPres, dims
 
-#print(readFile('./Instances/8x8.txt'))
-
-
 def SAT(h, w, nPres, dims):
     s = Solver()                    # Initializing solver
 
@@ -63,13 +55,14 @@ def SAT(h, w, nPres, dims):
                     for j in range(dim[1]):
 
                         # And-command as a present will use all the gridpoints, not just some
-                        place.append(grid[present][x+i][y+j])
+                        place.append(grid[present][y+j][x+i])
 
                 # Or-command as we only need *one* placement of present
                 placementConst.append(And(place))
         #print(placementConst)
 
         s.add(Or(placementConst))           # Adding constraint to the solver
+        print('1', Or(placementConst))
 
         # Initializing constraint that ensures that presents do not overlap
         overlapConst = []
@@ -79,11 +72,11 @@ def SAT(h, w, nPres, dims):
                     #oconst = Not(Or(*[And(grid[present][x][y], grid[nextPres][x][y])]))
                     #s.add(oconst)
                     #print(oconst)
-                    overlapConst.append(And(*[grid[present][x][y], grid[nextPres][x][y]]))
-                s.add(Not(Or(overlapConst)))
-                #print('0',Not(Or(overlapConst)))
+                    overlapConst.append(And(*[grid[present][y][x], grid[nextPres][y][x]]))
+        s.add(Not(Or(overlapConst)))
+        print('0',Not(Or(overlapConst)))
     print('hello')
-    print(s)
+    #print(s)
     print(s.check())
     print(s.unsat_core())
     m = s.model()
@@ -91,24 +84,25 @@ def SAT(h, w, nPres, dims):
     area = []
     dist = []
 
-    for x in range(w):
+
+    for y in range(h):
         dis = []
-        for y in range(h):
+        for x in range(w):
             for pres in range(nPres):
-                if m[grid[pres][x][y]]:
-                    print(pres, end=' ')
+                if m[grid[pres][y][x]]:
+                    #print(pres, end=' ')
                     dis.append(pres)
         dist.append(dis)
         print('\n')
 
-    dist = dist[::-1]
+    #dist = dist[::-1]
     print(dist)
 
     for pres in range(nPres):
         for x in range(w):
             for y in range(h):
-                if m[grid[pres][x][y]]:
-                    area.append(intGrid[pres][x][y])
+                if m[grid[pres][y][x]]:
+                    area.append(intGrid[pres][y][x])
         sol.append(area)
         area = []
 
@@ -121,24 +115,24 @@ def SAT(h, w, nPres, dims):
     print(dims)
     print('left',leftCorners)
 
-    #plt.imshow(dist, cmap='BuPu')#, levels=levels)
-    #plt.colorbar()
-    #plt.xlim(0,w)
-    #plt.ylim(0,h)
-    ax = sns.heatmap(dist, linewidth=0.5, annot=True, cbar=False)#, xticklabels=2, yticklabels=2)
-    #ax.invert_yaxis()
-    plt.title('Placement of presents on paper')
+    return dist
+
+
+
+def printPaper(w, h, dist):
+    sns.heatmap(dist, linewidth=0.5, annot=True, cbar=False)
+    plt.title('Placement of presents')
     plt.ylabel('Height of paper')
     plt.ylim(0,h)
     plt.xlabel('Width of paper')
     plt.xlim(0,w)
     plt.show()
-    #plt.contourf(dist, cmap='hot')#, levels=levels)
-    #plt.show()
+
 
 
 if __name__ == '__main__':
-    w, h, nPres, dims = readFile('./Instances/8x8.txt')
+    w, h, nPres, dims = readFile('./Instances/3x3.txt')
     print(w,h,nPres,dims)
-    SAT(w, h, nPres, dims)
+    dist = SAT(w, h, nPres, dims)
+    printPaper(w,h,dist)
 
