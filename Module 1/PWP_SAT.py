@@ -41,7 +41,8 @@ def SAT(h, w, nPres, dims):
 
     placementConst = []         # Constraint for the potential placements of the presents on the grid
     overlapConst = []
-    onceConst = []
+    mostOnce = []
+    leastOnce = []
 
     for present in range(nPres):
         dim = dims[present]
@@ -63,10 +64,14 @@ def SAT(h, w, nPres, dims):
                         # And-command as a present will use all the gridpoints, not just some
                         place.append(grid[present][y+j][x+i])
 
-                # Or-command as we only need *one* placement of present
+                # Or-command as we only need *one* placement of present REWRITE THIS COMMENT, NOW WRONG
                 temp.append(And(*place))
 
         placementConst.append(Or(*temp))
+
+        for i in range(len(temp)):
+            for j in range(i):
+                mostOnce.append(Not(And(*[temp[i], temp[j]])))
 
         # Initializing constraint that ensures that presents do not overlap
         for x in range(w):
@@ -74,20 +79,23 @@ def SAT(h, w, nPres, dims):
                 for nextPres in range(present):
                     overlapConst.append(Not(*[And([grid[present][y][x], grid[nextPres][y][x]])]))
 
-        # Constraint to make sure present is only placed once
-        n = len(placementConst)
-        for i in range(n):
-            for j in range(i):
-                onceConst.append(*[And(placementConst[i], placementConst[j])])
+
+    # Constraint to make sure present is at least placed once
+    n = len(placementConst)
+    for i in range(n):
+        for j in range(i):
+            leastOnce.append(*[And(placementConst[i], placementConst[j])])
 
     # Adding constraints to the solver
     s.add(And(*placementConst))
     s.add(And(*overlapConst))
-    s.add(And(*onceConst))
+    s.add(And(*mostOnce))
+    s.add(And(*leastOnce))
 
     print('where', And(*placementConst), '\n')
     print('overlap',And(*overlapConst), '\n')
-    print('once', And(*onceConst), '\n')
+    print('most once', And(*mostOnce), '\n')
+    print('least once', And(*leastOnce), '\n')
 
     print('hello')
     print(s.check())
@@ -147,7 +155,7 @@ def printPaper(w, h, dist):
 
 
 if __name__ == '__main__':
-    w, h, nPres, dims = readFile('./Instances/3x3.txt')
+    w, h, nPres, dims = readFile('./Instances/11x11.txt')
     print(w,h,nPres,dims)
     m, grid, intGrid = SAT(w, h, nPres, dims)
     dist = collectSolution(m, grid, intGrid)
