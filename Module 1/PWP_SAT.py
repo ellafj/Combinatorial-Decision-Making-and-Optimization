@@ -39,6 +39,7 @@ def SAT(h, w, nPres, dims):
     grid = [[[Bool(f'{i}{j}{k}') for i in range(w)]for j in range(h)]for k in range(nPres)]
     intGrid = [[[f'{i}{j}{k}' for i in range(w)]for j in range(h)]for k in range(nPres)]
 
+    placementConst = []         # Constraint for the potential placements of the presents on the grid
     overlapConst = []
 
     for present in range(nPres):
@@ -46,9 +47,10 @@ def SAT(h, w, nPres, dims):
         print('\n current present:', present+1, dim)
 
         # Initializing constraint for where presents can be placed on paper
-        placementConst = []         # Constraint for the potential placements of the presents on the grid
         remainingW = w - dim[0]     # Remaining width
         remainingH = h - dim[1]     # Remaining height
+
+        temp = []
 
         for x in range(remainingW+1):
             for y in range(remainingH+1):
@@ -60,11 +62,10 @@ def SAT(h, w, nPres, dims):
                         place.append(grid[present][y+j][x+i])
 
                 # Or-command as we only need *one* placement of present
-                placementConst.append(And(*place))
+                temp.append(And(*place))
         #print(placementConst)
-
-        s.add(Or(*placementConst))           # Adding constraint to the solver
-        print('where', Or(*placementConst), '\n')
+        placementConst.append(Or(*temp))
+       #here
         """
         # Constraint to make sure present is only placed once
         onceConst = []
@@ -102,6 +103,8 @@ def SAT(h, w, nPres, dims):
             #s.add(And(*(overlapConst)))
             #print('overlap',And(*(overlapConst)), '\n')
 
+    s.add(And(*placementConst))           # Adding constraint to the solver
+    print('where', And(*placementConst), '\n')
     s.add(And(*(overlapConst)))
     print('overlap',And(*(overlapConst)), '\n')
 
@@ -164,7 +167,7 @@ def printPaper(w, h, dist):
 
 
 if __name__ == '__main__':
-    w, h, nPres, dims = readFile('./Instances/11x11.txt')
+    w, h, nPres, dims = readFile('./Instances/f12x12.txt')
     print(w,h,nPres,dims)
     m, grid, intGrid = SAT(w, h, nPres, dims)
     dist = collectSolution(m, grid, intGrid)
