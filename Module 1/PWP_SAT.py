@@ -2,7 +2,7 @@ from z3 import *
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-np.set_printoptions(linewidth=50)
+#np.set_printoptions(linewidth=50)
 
 
 def readFile(filename):
@@ -39,6 +39,8 @@ def SAT(h, w, nPres, dims):
     grid = [[[Bool(f'{i}{j}{k}') for i in range(w)]for j in range(h)]for k in range(nPres)]
     intGrid = [[[f'{i}{j}{k}' for i in range(w)]for j in range(h)]for k in range(nPres)]
 
+    overlapConst = []
+
     for present in range(nPres):
         dim = dims[present]
         print('\n current present:', present+1, dim)
@@ -63,48 +65,58 @@ def SAT(h, w, nPres, dims):
 
         s.add(Or(*placementConst))           # Adding constraint to the solver
         print('where', Or(*placementConst), '\n')
-
+        """
         # Constraint to make sure present is only placed once
         onceConst = []
         n = len(placementConst)
         for i in range(n):
             for j in range(i):
-                onceConst.append(And(placementConst[i], placementConst[j]))
+                onceConst.append(Not(*[And(placementConst[i], placementConst[j])]))
 
-            """
+            
             if n != 0:
                 print('n', n)
                 onceConst.append(And(placementConst[i], placementConst[i+n-1]))
-                n -= 1"""
-        print('once', Not(And(*onceConst)), '\n')
-        s.add(Not(And(*onceConst)))
+                n -= 1
+        if len(onceConst) == 1:
+            s.add(onceConst)
+            print('once1', onceConst, '\n')
+        else:
+            s.add(And(*onceConst))
+            print('once2', (And(*onceConst)), '\n')"""
 
 
         # Initializing constraint that ensures that presents do not overlap
-        overlapConst = []
         for x in range(w):
             for y in range(h):
                 for nextPres in range(present):
                     #oconst = Not(Or(*[And(grid[present][x][y], grid[nextPres][x][y])]))
                     #s.add(oconst)
                     #print(oconst)
-                    overlapConst.append(And([grid[present][y][x], grid[nextPres][y][x]]))
+                    overlapConst.append(Not(*[And([grid[present][y][x], grid[nextPres][y][x]])]))
                     #overlapConst.append(Not(Or(*[And([grid[present][y][x], grid[nextPres][y][x]])])))
                     #s.add(Not(Or(*[And([grid[present][y][x], grid[nextPres][y][x]])])))
                     #print('0', Not(Or(*[And([grid[present][y][x], grid[nextPres][y][x]])])))
-        if present != 0:
+        #if present != 0:
             #s.add(overlapConst)
-            s.add(Not(And(*[And(overlapConst)])))
-            print('overlap',Not(Or(*(overlapConst))), '\n')
+            #s.add(And(*(overlapConst)))
+            #print('overlap',And(*(overlapConst)), '\n')
+
+    s.add(And(*(overlapConst)))
+    print('overlap',And(*(overlapConst)), '\n')
+
     print('hello')
     #print(s)
     print(s.check())
     print(s.unsat_core())
     m = s.model()
+
+    return m, grid, intGrid
+
+def collectSolution(m, grid, intGrid):
     sol = []
     area = []
     dist = []
-
 
     for y in range(h):
         dis = []
@@ -152,8 +164,9 @@ def printPaper(w, h, dist):
 
 
 if __name__ == '__main__':
-    w, h, nPres, dims = readFile('./Instances/3x3.txt')
+    w, h, nPres, dims = readFile('./Instances/11x11.txt')
     print(w,h,nPres,dims)
-    dist = SAT(w, h, nPres, dims)
+    m, grid, intGrid = SAT(w, h, nPres, dims)
+    dist = collectSolution(m, grid, intGrid)
     printPaper(w,h,dist)
 
