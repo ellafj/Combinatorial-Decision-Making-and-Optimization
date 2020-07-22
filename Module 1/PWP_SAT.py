@@ -58,11 +58,27 @@ def SAT(h, w, nPres, dims):
                         place.append(grid[present][y+j][x+i])
 
                 # Or-command as we only need *one* placement of present
-                placementConst.append(And(place))
+                placementConst.append(And(*place))
         #print(placementConst)
 
-        s.add(Or(placementConst))           # Adding constraint to the solver
-        print('1', Or(placementConst))
+        s.add(Or(*placementConst))           # Adding constraint to the solver
+        print('where', Or(*placementConst), '\n')
+
+        # Constraint to make sure present is only placed once
+        onceConst = []
+        n = len(placementConst)
+        for i in range(n):
+            for j in range(i):
+                onceConst.append(And(placementConst[i], placementConst[j]))
+
+            """
+            if n != 0:
+                print('n', n)
+                onceConst.append(And(placementConst[i], placementConst[i+n-1]))
+                n -= 1"""
+        print('once', Not(And(*onceConst)), '\n')
+        s.add(Not(And(*onceConst)))
+
 
         # Initializing constraint that ensures that presents do not overlap
         overlapConst = []
@@ -72,9 +88,14 @@ def SAT(h, w, nPres, dims):
                     #oconst = Not(Or(*[And(grid[present][x][y], grid[nextPres][x][y])]))
                     #s.add(oconst)
                     #print(oconst)
-                    overlapConst.append(And(*[grid[present][y][x], grid[nextPres][y][x]]))
-        s.add(Not(Or(overlapConst)))
-        print('0',Not(Or(overlapConst)))
+                    overlapConst.append(And([grid[present][y][x], grid[nextPres][y][x]]))
+                    #overlapConst.append(Not(Or(*[And([grid[present][y][x], grid[nextPres][y][x]])])))
+                    #s.add(Not(Or(*[And([grid[present][y][x], grid[nextPres][y][x]])])))
+                    #print('0', Not(Or(*[And([grid[present][y][x], grid[nextPres][y][x]])])))
+        if present != 0:
+            #s.add(overlapConst)
+            s.add(Not(And(*[And(overlapConst)])))
+            print('overlap',Not(Or(*(overlapConst))), '\n')
     print('hello')
     #print(s)
     print(s.check())
@@ -93,10 +114,10 @@ def SAT(h, w, nPres, dims):
                     #print(pres, end=' ')
                     dis.append(pres)
         dist.append(dis)
-        print('\n')
+        #print('\n')
 
     #dist = dist[::-1]
-    print(dist)
+    print('h',dist)
 
     for pres in range(nPres):
         for x in range(w):
