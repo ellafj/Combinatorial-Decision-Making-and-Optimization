@@ -32,12 +32,14 @@ def readFile(filename):
     return w, h, nPres, dims
 
 def writeSolutions(filename, w, h, nPres, dims, leftCorners, time):
-    f = open(filename, 'w')
+    newname = filename.replace('.txt', 'sol.txt')
+    f = open('./Solutions/' + newname, 'w')
     f.write('%d %d\n' % (w, h))
     f.write('%d\n' % nPres)
     for i in range(nPres):
         corner = leftCorners[i]
-        f.write('%d %d %d %d\n' % (dims[0], dims[1], corner[0], corner[1]))
+        dim = dims[0]
+        f.write('%d %d %s %s\n' % (dim[0], dim[1], corner[0], corner[1]))
     f.write('Solved in %d seconds' % time)
     f.close()
 
@@ -48,4 +50,4 @@ def printPaper(w, h, dist):
     plt.ylim(0,h)
     plt.xlabel('Width of paper')
     plt.xlim(0,w)
-    plt.savefig('%dx%d.txt' % (w, h))
+    plt.savefig('%dx%d.pdf' % (w, h))

@@ -4,4 +4,4 @@
 3 3 0 0
 3 3 3 0
 3 3 3 3
-Solved in 0 seconds
+Solved in 1 seconds
