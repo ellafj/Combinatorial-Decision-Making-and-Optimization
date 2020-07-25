@@ -1,42 +1,15 @@
 from z3 import *
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-#np.set_printoptions(linewidth=50)
+from util import *
+import time
 
 
-def readFile(filename):
-    f = open(filename, 'r')
-    lines = f.readlines()
-
-    dims = []
-    w, h, nPres, iter = 0, 0, 0, 0
-
-    for line in lines:
-        line = line.split()
-
-        if iter == 0:
-            w = int(line[0])
-            h = int(line[1])
-
-        elif iter == 1:
-            nPres = int(line[0])
-
-        else:
-            if len(line) != 0:
-                dims.append([int(line[0]), int(line[1])])
-
-        iter += 1
-
-    f.close()
-    return w, h, nPres, dims
-
-def SAT(h, w, nPres, dims):
+def SAT(w, h, nPres, dims):
     s = Solver()                    # Initializing solver
+    M = {}                          # Initializing map of constraints
 
     # Making grid as in N-queens example for each potential placing of presents
     # Grid[0] = all placements of present 0
-    grid = [[[Bool(f'{i}{j}{k}') for i in range(w)]for j in range(h)]for k in range(nPres)]
+    grid = [[[Bool(f'{i}-{j}-{k}') for i in range(w)]for j in range(h)]for k in range(nPres)]
     intGrid = [[[f'{i}{j}{k}' for i in range(w)]for j in range(h)]for k in range(nPres)]
 
     placementConst = []         # Constraint for the potential placements of the presents on the grid
@@ -45,13 +18,13 @@ def SAT(h, w, nPres, dims):
     leastOnce = []
 
     for present in range(nPres):
+        print('\n')
+        print('current present:', present)
         dim = dims[present]
-        print('\n current present:', present+1, dim)
 
         # Initializing constraint for where presents can be placed on paper
         remainingW = w - dim[0]     # Remaining width
         remainingH = h - dim[1]     # Remaining height
-
         temp = []
 
         # Constraint for connecting gridpoints together for shapes of presents
@@ -69,40 +42,51 @@ def SAT(h, w, nPres, dims):
 
         placementConst.append(Or(*temp))
 
+        # Constraint that ensures present is placed at most once
         for i in range(len(temp)):
             for j in range(i):
                 mostOnce.append(Not(And(*[temp[i], temp[j]])))
 
-        # Initializing constraint that ensures that presents do not overlap
+        # Constraint that ensures that presents do not overlap
         for x in range(w):
             for y in range(h):
                 for nextPres in range(present):
                     overlapConst.append(Not(*[And([grid[present][y][x], grid[nextPres][y][x]])]))
 
-
-    # Constraint to make sure present is at least placed once
+    # Constraint that ensures present is at least placed once
     n = len(placementConst)
     for i in range(n):
         for j in range(i):
             leastOnce.append(*[And(placementConst[i], placementConst[j])])
 
+    M['placement'] = And(*placementConst)
+    M['overlap'] = And(*overlapConst)
+    M['mostOnce'] = And(*mostOnce)
+    M['leastOnce'] = And(*leastOnce)
+
+    s.assert_and_track(And(*placementConst), 'place')
+    s.assert_and_track(And(*overlapConst), 'overlap')
+    s.assert_and_track(And(*mostOnce), 'mostOnce')
+    s.assert_and_track(And(*leastOnce), 'leastOnce')
+
     # Adding constraints to the solver
-    s.add(And(*placementConst))
-    s.add(And(*overlapConst))
-    s.add(And(*mostOnce))
-    s.add(And(*leastOnce))
+    #s.add(And(*placementConst))
+    #s.add(And(*overlapConst))
+    #s.add(And(*mostOnce))
+    #s.add(And(*leastOnce))
 
-    print('where', And(*placementConst), '\n')
-    print('overlap',And(*overlapConst), '\n')
-    print('most once', And(*mostOnce), '\n')
-    print('least once', And(*leastOnce), '\n')
+    #print('where', And(*placementConst), '\n')
+    #print('overlap',And(*overlapConst), '\n')
+    #print('most once', And(*mostOnce), '\n')
+    #print('least once', And(*leastOnce), '\n')
 
-    print('hello')
+    print('Solving \n')
     print(s.check())
     print(s.unsat_core())
     m = s.model()
 
     return m, grid, intGrid
+
 
 def collectSolution(m, grid, intGrid):
     sol = []
@@ -139,25 +123,21 @@ def collectSolution(m, grid, intGrid):
     print(dims)
     print('left',leftCorners)
 
-    return dist
-
-
-
-def printPaper(w, h, dist):
-    sns.heatmap(dist, linewidth=0.5, annot=True, cbar=False)
-    plt.title('Placement of presents')
-    plt.ylabel('Height of paper')
-    plt.ylim(0,h)
-    plt.xlabel('Width of paper')
-    plt.xlim(0,w)
-    plt.show()
-
+    return dist, leftCorners
 
 
 if __name__ == '__main__':
-    w, h, nPres, dims = readFile('./Instances/11x11.txt')
-    print(w,h,nPres,dims)
-    m, grid, intGrid = SAT(w, h, nPres, dims)
-    dist = collectSolution(m, grid, intGrid)
-    printPaper(w,h,dist)
+    directory = './Instances/'
+    list = ['8x8.txt', '9x9.txt','10x10.txt','11x11.txt','12x12.txt', '13x13.txt', '14x14.txt', '15x15.txt',]
+    for filename in os.listdir(directory):
+        if filename in list:
+            start = time.time()
+            print('Currently working on file:', filename)
+            w, h, nPres, dims = readFile(directory + filename)
+            #print(w,h,nPres,dims)
+            m, grid, intGrid = SAT(w, h, nPres, dims)
+            dist, leftCorners = collectSolution(m, grid, intGrid)
+            now = time.time() - start
+            writeSolutions(filename, w, h, nPres, dims, leftCorners, now)
+            printPaper(w,h,dist)
 
