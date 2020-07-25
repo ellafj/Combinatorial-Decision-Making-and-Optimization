@@ -104,7 +104,7 @@ def collectSolution(m, grid, intGrid):
         #print('\n')
 
     #dist = dist[::-1]
-    print('h',dist)
+    #print('h',dist)
 
     for pres in range(nPres):
         for x in range(w):
@@ -114,23 +114,23 @@ def collectSolution(m, grid, intGrid):
         sol.append(area)
         area = []
 
-    print(sol)
+    #print(sol)
     leftCorners = []
 
     for pres in sol:
         leftCorners.append(min(pres))
 
-    print(dims)
-    print('left',leftCorners)
+    #print(dims)
+    #print('left',leftCorners)
 
     return dist, leftCorners
 
 
 if __name__ == '__main__':
     directory = './Instances/'
-    list = ['8x8.txt', '9x9.txt','10x10.txt','11x11.txt','12x12.txt', '13x13.txt', '14x14.txt', '15x15.txt',]
+    list = ['8x8.txt', '9x9.txt','10x10.txt','11x11.txt','12x12.txt', '13x13.txt', '14x14.txt', '15x15.txt']
     for filename in os.listdir(directory):
-        if filename in list:
+        if filename not in list:
             start = time.time()
             print('Currently working on file:', filename)
             w, h, nPres, dims = readFile(directory + filename)
@@ -138,6 +138,7 @@ if __name__ == '__main__':
             m, grid, intGrid = SAT(w, h, nPres, dims)
             dist, leftCorners = collectSolution(m, grid, intGrid)
             now = time.time() - start
+            print('time',start, now)
             writeSolutions(filename, w, h, nPres, dims, leftCorners, now)
             printPaper(w,h,dist)
 

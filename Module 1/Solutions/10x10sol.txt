@@ -6,4 +6,4 @@
 3 3 0 3
 3 3 3 0
 3 3 6 4
-Solved in 4 seconds
+Solved in 5 seconds

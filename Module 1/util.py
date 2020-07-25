@@ -44,10 +44,11 @@ def writeSolutions(filename, w, h, nPres, dims, leftCorners, time):
     f.close()
 
 def printPaper(w, h, dist):
-    sns.heatmap(dist, linewidth=0.5, annot=True, cbar=False)
+    sns.heatmap(dist, linewidth=0.5, cbar=False, annot=True)
     plt.title('Placement of presents')
     plt.ylabel('Height of paper')
     plt.ylim(0,h)
     plt.xlabel('Width of paper')
     plt.xlim(0,w)
-    plt.savefig('%dx%d.pdf' % (w, h))
+    plt.savefig('./Solutions/%dx%d.pdf' % (w, h))
+    plt.close()
