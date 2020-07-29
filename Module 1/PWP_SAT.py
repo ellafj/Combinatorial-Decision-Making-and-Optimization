@@ -41,33 +41,35 @@ def SAT(w, h, nPres, dims):
                 temp.append(And(*place))
 
         placementConst.append(Or(*temp))
-
+        """
         # Constraint that ensures present is placed at most once
         for i in range(len(temp)):
             for j in range(i):
                 mostOnce.append(Not(And(*[temp[i], temp[j]])))
+        """
 
         # Constraint that ensures that presents do not overlap
         for x in range(w):
             for y in range(h):
                 for nextPres in range(present):
                     overlapConst.append(Not(*[And([grid[present][y][x], grid[nextPres][y][x]])]))
-
+    """
     # Constraint that ensures present is at least placed once
     n = len(placementConst)
     for i in range(n):
         for j in range(i):
             leastOnce.append(*[And(placementConst[i], placementConst[j])])
+    """
 
     M['placement'] = And(*placementConst)
     M['overlap'] = And(*overlapConst)
-    M['mostOnce'] = And(*mostOnce)
-    M['leastOnce'] = And(*leastOnce)
+   # M['mostOnce'] = And(*mostOnce)
+    #M['leastOnce'] = And(*leastOnce)
 
     s.assert_and_track(And(*placementConst), 'place')
     s.assert_and_track(And(*overlapConst), 'overlap')
-    s.assert_and_track(And(*mostOnce), 'mostOnce')
-    s.assert_and_track(And(*leastOnce), 'leastOnce')
+    #s.assert_and_track(And(*mostOnce), 'mostOnce')
+    #s.assert_and_track(And(*leastOnce), 'leastOnce')
 
     # Adding constraints to the solver
     #s.add(And(*placementConst))
@@ -91,7 +93,7 @@ def SAT(w, h, nPres, dims):
 def collectSolution(m, grid, intGrid):
     sol = []
     area = []
-    dist = []
+    dist = []       # distribution
 
     for y in range(h):
         dis = []
@@ -128,9 +130,11 @@ def collectSolution(m, grid, intGrid):
 
 if __name__ == '__main__':
     directory = './Instances/'
-    list = ['8x8.txt', '9x9.txt','10x10.txt','11x11.txt','12x12.txt', '13x13.txt', '14x14.txt', '15x15.txt']
+    dir = './SAT_Solutions/'
+    #list = ['8x8.txt', '9x9.txt','10x10.txt','11x11.txt','12x12.txt', '13x13.txt', '14x14.txt', '15x15.txt']
+    list = ['18x18.txt']#['16x16.txt', '17x17.txt','18x18.txt']#,'19x19.txt','20x20.txt']#, '13x13.txt', '14x14.txt', '15x15.txt']
     for filename in os.listdir(directory):
-        if filename not in list:
+        if filename in list:
             start = time.time()
             print('Currently working on file:', filename)
             w, h, nPres, dims = readFile(directory + filename)
@@ -139,6 +143,6 @@ if __name__ == '__main__':
             dist, leftCorners = collectSolution(m, grid, intGrid)
             now = time.time() - start
             print('time',start, now)
-            writeSolutions(filename, w, h, nPres, dims, leftCorners, now)
-            printPaper(w,h,dist)
+            writeSolutions(filename, w, h, nPres, dims, leftCorners, now, dir)
+            printPaper(w,h,dist,dir)
 

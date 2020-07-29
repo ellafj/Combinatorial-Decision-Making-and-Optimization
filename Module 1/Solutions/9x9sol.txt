@@ -1,8 +1,8 @@
 9 9
 5
-3 3 3 0
+3 3 6 0
 3 3 0 5
 3 3 0 0
-3 3 3 3
-3 3 6 0
-Solved in 1 seconds
+3 3 6 3
+3 3 3 0
+Solved in 2 seconds

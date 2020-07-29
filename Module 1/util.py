@@ -31,9 +31,9 @@ def readFile(filename):
     f.close()
     return w, h, nPres, dims
 
-def writeSolutions(filename, w, h, nPres, dims, leftCorners, time):
+def writeSolutions(filename, w, h, nPres, dims, leftCorners, time, dir):
     newname = filename.replace('.txt', 'sol.txt')
-    f = open('./Solutions/' + newname, 'w')
+    f = open(dir + newname, 'w')
     f.write('%d %d\n' % (w, h))
     f.write('%d\n' % nPres)
     for i in range(nPres):
@@ -43,12 +43,12 @@ def writeSolutions(filename, w, h, nPres, dims, leftCorners, time):
     f.write('Solved in %d seconds' % time)
     f.close()
 
-def printPaper(w, h, dist):
-    sns.heatmap(dist, linewidth=0.5, cbar=False, annot=True)
+def printPaper(w, h, dist, dir):
+    sns.heatmap(dist, linewidth=0.5, cbar=False, annot=True, annot_kws={"size": 5})
     plt.title('Placement of presents')
     plt.ylabel('Height of paper')
     plt.ylim(0,h)
     plt.xlabel('Width of paper')
     plt.xlim(0,w)
-    plt.savefig('./Solutions/%dx%d.pdf' % (w, h))
+    plt.savefig(dir + '/%dx%d.pdf' % (w, h))
     plt.close()
