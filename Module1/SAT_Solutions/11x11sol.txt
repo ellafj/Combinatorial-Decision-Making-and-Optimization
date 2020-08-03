@@ -2,9 +2,9 @@
 7
 3 3 0 0
 3 4 0 3
-3 5 1 0
-3 6 1 0
+3 5 8 0
+3 6 8 5
 5 3 3 4
 5 4 3 0
-8 4 0 1
-Solved in 8 seconds
+8 4 0 7
+Solved in 11 seconds

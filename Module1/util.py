@@ -38,19 +38,25 @@ def writeSolutions(filename, w, h, nPres, dims, leftCorners, time, dir, type):
     f.write('%d\n' % nPres)
     if type == 'SAT/SMT':
         for i in range(nPres):
-            corner = leftCorners[i]
+            corner = leftCorners[i].split('-')
             dim = dims[i]
             f.write('%d %d %s %s\n' % (dim[0], dim[1], corner[0], corner[1]))
     elif type == 'CP':
-        dims = np.array(dims)
+        """dims = np.array(dims)
         dims = dims.flatten()
         invalidTypes = ['[', ' ', ',', ']']
         corners = [int(i) for i in leftCorners if i not in invalidTypes]
         print('leftCorners', corners)
-        print('dims', dims[2])
+        print('dims', dims)
+        print('len', len(corners))
         for i in range(0,len(corners),2):
             print('i', i)
-            f.write('%d %d %s %s\n' % (dims[i], dims[i+1], corners[i]-1, corners[i+1]-1))
+            f.write('%d %d %s %s\n' % (dims[i], dims[i+1], corners[i], corners[i+1]))
+        """
+        for i in range(nPres):
+            corner = leftCorners[i]
+            dim = dims[i]
+            f.write('%d %d %s %s\n' % (dim[0], dim[1], corner[0], corner[1]))
     f.write('Solved in %d seconds' % time)
     f.close()
 

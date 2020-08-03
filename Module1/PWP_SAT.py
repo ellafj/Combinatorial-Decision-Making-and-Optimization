@@ -10,7 +10,7 @@ def SAT(w, h, nPres, dims):
     # Making grid as in N-queens example for each potential placing of presents
     # Grid[0] = all placements of present 0
     grid = [[[Bool(f'{x}-{y}-{p}') for x in range(w)]for y in range(h)]for p in range(nPres)]
-    intGrid = [[[f'{x}{y}{p}' for x in range(w)]for y in range(h)]for p in range(nPres)]
+    intGrid = [[[f'{x}-{y}-{p}' for x in range(w)]for y in range(h)]for p in range(nPres)]
 
     placementConst = []         # Constraint for the potential placements of the presents on the grid
     overlapConst = []
@@ -96,7 +96,7 @@ def SAT_rotation(w, h, nPres, dims):
     # Making grid as in N-queens example for each potential placing of presents
     # Grid[0] = all placements of present 0
     grid = [[[Bool(f'{x}-{y}-{p}') for x in range(w)]for y in range(h)]for p in range(nPres)]
-    intGrid = [[[f'{x}{y}{p}' for x in range(w)]for y in range(h)]for p in range(nPres)]
+    intGrid = [[[f'{x}-{y}-{p}' for x in range(w)]for y in range(h)]for p in range(nPres)]
 
     placementConst = []         # Constraint for the potential placements of the presents on the grid
     overlapConst = []
@@ -202,10 +202,6 @@ def collectSolution(m, grid, intGrid):
                     #print(pres, end=' ')
                     dis.append(pres)
         dist.append(dis)
-        #print('\n')
-
-    #dist = dist[::-1]
-    #print('h',dist)
 
     for pres in range(nPres):
         for x in range(w):
@@ -215,14 +211,10 @@ def collectSolution(m, grid, intGrid):
         sol.append(area)
         area = []
 
-    #print(sol)
     leftCorners = []
 
     for pres in sol:
-        leftCorners.append(min(pres))
-
-    #print(dims)
-    #print('left',leftCorners)
+        leftCorners.append(pres[0])
 
     return dist, leftCorners
 
@@ -230,8 +222,8 @@ def collectSolution(m, grid, intGrid):
 if __name__ == '__main__':
     directory = './Instances/'
     dir = './SAT_Solutions/'
-    #list = [ '9x9.txt','10x10.txt','11x11.txt','12x12.txt', '13x13.txt', '14x14.txt', '15x15.txt', '16x16.txt', '17x17.txt']
-    list = ['18x18.txt']#['16x16.txt', '17x17.txt','18x18.txt']#,'19x19.txt','20x20.txt']#, '13x13.txt', '14x14.txt', '15x15.txt']
+    list = [ '9x9.txt','10x10.txt','11x11.txt','12x12.txt', '13x13.txt', '14x14.txt', '15x15.txt', '16x16.txt', '17x17.txt']
+    #list = ['18x18.txt']#['16x16.txt', '17x17.txt','18x18.txt']#,'19x19.txt','20x20.txt']#, '13x13.txt', '14x14.txt', '15x15.txt']
     for filename in os.listdir(directory):
         if filename in list:
             start = time.time()
@@ -243,6 +235,6 @@ if __name__ == '__main__':
             dist, leftCorners = collectSolution(m, grid, intGrid)
             now = time.time() - start
             print('time',start, now)
-            writeSolutions(filename, w, h, nPres, dims, leftCorners, now, dir)
+            writeSolutions(filename, w, h, nPres, dims, leftCorners, now, dir, 'SAT/SMT')
             printPaper(w,h,dist,dir)
 
