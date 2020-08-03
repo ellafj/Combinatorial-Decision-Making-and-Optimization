@@ -1,0 +1,5 @@
+12 12
+2
+6 12 0 0
+6 12 0 1
+Solved in 2 seconds
