@@ -5,7 +5,6 @@ include "globals.mzn";
 int: w;            % width of paper
 int: h;            % Height of paper
 int: nPres;        % number of presents to be wrapped
-int: area = w*h;   % area of paper
 
 % Defining sets
 set of int: WIDTH = 1..w;
@@ -26,6 +25,7 @@ ann: search_ann;
 %search_ann = int_search(place, input_order, indomain_median, complete); 
 search_ann = int_search(place, first_fail, indomain_min, complete); 
 %search_ann = int_search(place, first_fail, indomain_median, complete);
+%search_ann = int_search(place, first_fail, indomain_random, complete);
 
 % Solving optimization problem
 solve :: search_ann satisfy;

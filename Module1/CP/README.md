@@ -1,0 +1,1 @@
+Here is my Constraint Programming code made for Minizinc. There is unfortunatly no out-folder as I found no clever way of saving the solutions. I apologize for that. However, the code should be able to produce solutions of its own if you run it with the instance you want. All instances modified to work with MiniZInc can be found in the dzn_Instances folder.

@@ -60,27 +60,10 @@ def SAT(w, h, nPres, dims):
         for j in range(i):
             leastOnce.append(*[And(placementConst[i], placementConst[j])])
 
-
-    M['placement'] = And(*placementConst)
-    M['overlap'] = And(*overlapConst)
-   # M['mostOnce'] = And(*mostOnce)
-    #M['leastOnce'] = And(*leastOnce)
-
     s.assert_and_track(And(*placementConst), 'place')
     s.assert_and_track(And(*overlapConst), 'overlap')
     s.assert_and_track(And(*mostOnce), 'mostOnce')
     s.assert_and_track(And(*leastOnce), 'leastOnce')
-
-    # Adding constraints to the solver
-    #s.add(And(*placementConst))
-    #s.add(And(*overlapConst))
-    #s.add(And(*mostOnce))
-    #s.add(And(*leastOnce))
-
-    #print('where', And(*placementConst), '\n')
-    #print('overlap',And(*overlapConst), '\n')
-    #print('most once', And(*mostOnce), '\n')
-    #print('least once', And(*leastOnce), '\n')
 
     print('Solving \n')
     print(s.check())
@@ -160,27 +143,13 @@ def SAT_rotation(w, h, nPres, dims):
         for j in range(i):
             leastOnce.append(*[And(placementConst[i], placementConst[j])])
 
-
-    M['placement'] = And(*placementConst)
-    M['overlap'] = And(*overlapConst)
-   # M['mostOnce'] = And(*mostOnce)
-    #M['leastOnce'] = And(*leastOnce)
-
     s.assert_and_track(And(*placementConst), 'place')
     s.assert_and_track(And(*overlapConst), 'overlap')
     s.assert_and_track(And(*mostOnce), 'mostOnce')
     s.assert_and_track(And(*leastOnce), 'leastOnce')
 
-    # Adding constraints to the solver
-    #s.add(And(*placementConst))
-    #s.add(And(*overlapConst))
-    #s.add(And(*mostOnce))
-    #s.add(And(*leastOnce))
-
     print('where', And(*placementConst), '\n')
-    #print('overlap',And(*overlapConst), '\n')
     print('most once', And(*mostOnce), '\n')
-    #print('least once', And(*leastOnce), '\n')
 
     print('Solving \n')
     print(s.check())
@@ -192,14 +161,13 @@ def SAT_rotation(w, h, nPres, dims):
 def collectSolution(m, grid, intGrid):
     sol = []
     area = []
-    dist = []       # distribution
+    dist = []
 
     for y in range(h):
         dis = []
         for x in range(w):
             for pres in range(nPres):
                 if m[grid[pres][y][x]]:
-                    #print(pres, end=' ')
                     dis.append(pres)
         dist.append(dis)
 
@@ -222,19 +190,15 @@ def collectSolution(m, grid, intGrid):
 if __name__ == '__main__':
     directory = './Instances/'
     dir = './SAT_Solutions/'
-    list = [ '9x9.txt','10x10.txt','11x11.txt','12x12.txt', '13x13.txt', '14x14.txt', '15x15.txt', '16x16.txt', '17x17.txt']
-    #list = ['18x18.txt']#['16x16.txt', '17x17.txt','18x18.txt']#,'19x19.txt','20x20.txt']#, '13x13.txt', '14x14.txt', '15x15.txt']
     for filename in os.listdir(directory):
-        if filename in list:
+        if filename != '.DS_Store':
             start = time.time()
             print('Currently working on file:', filename)
             w, h, nPres, dims = readFile(directory + filename)
-            #print(w,h,nPres,dims)
-            #m, grid, intGrid = SAT_rotation(w, h, nPres, dims)
             m, grid, intGrid = SAT(w, h, nPres, dims)
             dist, leftCorners = collectSolution(m, grid, intGrid)
             now = time.time() - start
             print('time',start, now)
-            writeSolutions(filename, w, h, nPres, dims, leftCorners, now, dir, 'SAT/SMT')
+            writeSolutions(filename, w, h, nPres, dims, leftCorners, now, dir, 'SAT')
             printPaper(w,h,dist,dir)
 

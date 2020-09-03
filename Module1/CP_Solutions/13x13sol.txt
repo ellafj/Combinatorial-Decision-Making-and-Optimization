@@ -9,4 +9,4 @@
 4 3 9 0
 4 4 9 3
 7 6 6 7
-Solved in 0 seconds
+Solved in 1 seconds
